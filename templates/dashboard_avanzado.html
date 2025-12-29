@@ -216,6 +216,81 @@
             </div>
         </div>
 
+        <!-- Métricas de Riesgo Avanzadas -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-shield-alt me-2"></i>
+                            Métricas de Riesgo Avanzadas (VaR, Monte Carlo, ESG)
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Seleccionar Activo:</label>
+                                <select class="form-select form-select-sm" id="riesgo-activo-select" onchange="cargarMetricasRiesgo()">
+                                    <option value="">Seleccionar activo...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-8">
+                                <small class="text-muted">Análisis institucional de riesgo con VaR, Monte Carlo, Stress Testing y métricas ESG</small>
+                            </div>
+                        </div>
+                        <div id="metricas-riesgo">
+                            <div class="text-center">
+                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                <p class="mt-2">Seleccione un activo para ver análisis de riesgo...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VaR de Cartera -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-pie me-2"></i>
+                            VaR de Cartera Completa
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Nivel de Confianza:</label>
+                                <select class="form-select form-select-sm" id="var-confidence" onchange="cargarPortfolioVar()">
+                                    <option value="0.90">90%</option>
+                                    <option value="0.95" selected>95%</option>
+                                    <option value="0.99">99%</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Método:</label>
+                                <select class="form-select form-select-sm" id="var-metodo" onchange="cargarPortfolioVar()">
+                                    <option value="historico" selected>Histórico</option>
+                                    <option value="parametrico">Paramétrico</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted">Value at Risk agregado para toda la cartera con análisis de diversificación</small>
+                            </div>
+                        </div>
+                        <div id="portfolio-var">
+                            <div class="text-center">
+                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                <p class="mt-2">Calculando VaR de cartera...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Análisis Detallado por Activo -->
         <div class="row mb-4">
             <div class="col-12">
@@ -259,17 +334,20 @@
                                 </ul>
                             </div>
                             <div class="col-md-4">
-                                <h6>APIs Análisis de Cartera:</h6>
+                                <h6>APIs Análisis de Riesgo:</h6>
                                 <ul class="list-unstyled small">
-                                    <li><code>GET /api/metrics/correlation-matrix</code> - Matriz correlación</li>
-                                    <li><code>GET /api/metrics/diversification</code> - Diversificación</li>
-                                    <li><code>GET /api/metrics/backtesting</code> - Backtesting</li>
+                                    <li><code>GET /api/advanced/var/{id}</code> - Value at Risk</li>
+                                    <li><code>GET /api/advanced/monte-carlo/{id}</code> - Análisis Monte Carlo</li>
+                                    <li><code>GET /api/advanced/stress-testing</code> - Stress Testing</li>
+                                    <li><code>GET /api/advanced/esg/{id}</code> - Métricas ESG</li>
                                 </ul>
                             </div>
                             <div class="col-md-4">
                                 <h6>APIs Análisis Avanzado:</h6>
                                 <ul class="list-unstyled small">
-                                    <li><code>GET /api/metrics/sensitivity/{id}</code> - Sensibilidad</li>
+                                    <li><code>GET /api/metrics/correlation-matrix</code> - Matriz correlación</li>
+                                    <li><code>GET /api/metrics/diversification</code> - Diversificación</li>
+                                    <li><code>GET /api/advanced/portfolio-var</code> - VaR de Cartera</li>
                                     <li><code>GET /api/advanced/summary</code> - Resumen completo</li>
                                 </ul>
                             </div>
@@ -652,6 +730,17 @@
                 option.textContent = analysis.ticker;
                 select.appendChild(option);
             });
+            
+            // También poblar el selector de riesgo
+            const riesgoSelect = document.getElementById('riesgo-activo-select');
+            riesgoSelect.innerHTML = '<option value="">Seleccionar activo...</option>';
+            
+            analyses.forEach(analysis => {
+                const option = document.createElement('option');
+                option.value = analysis.activo_id;
+                option.textContent = analysis.ticker;
+                riesgoSelect.appendChild(option);
+            });
         }
 
         // Funciones de actualización
@@ -682,7 +771,7 @@
                 }
 
                 let html = '<h6>Análisis de Sensibilidad</h6>';
-                html += `<p class="small"><strong>Resultado Base:</strong> $${data.resultado_base}</p>`;
+                html += `<p class="small"><strong>Resultado Base:</strong> ${data.resultado_base}</p>`;
                 
                 // Parámetros más sensibles
                 if (data.parametros_criticos) {
@@ -703,6 +792,209 @@
             }
         }
 
+        // Cargar métricas de riesgo avanzadas
+        async function cargarMetricasRiesgo() {
+            const activoId = document.getElementById('riesgo-activo-select').value;
+            if (!activoId) {
+                document.getElementById('metricas-riesgo').innerHTML = 
+                    '<div class="text-center"><p class="text-muted">Seleccione un activo para ver análisis de riesgo...</p></div>';
+                return;
+            }
+
+            try {
+                // Cargar VaR
+                const varResponse = await fetch(`/api/advanced/var/${activoId}?metodo=historico&nivel_confianza=0.95`);
+                const varData = await varResponse.json();
+
+                // Cargar Monte Carlo
+                const mcResponse = await fetch(`/api/advanced/monte-carlo/${activoId}?simulaciones=1000&dias_proyeccion=252`);
+                const mcData = await mcResponse.json();
+
+                // Cargar ESG
+                const esgResponse = await fetch(`/api/advanced/esg/${activoId}`);
+                const esgData = await esgResponse.json();
+
+                let html = '<div class="row">';
+
+                // Sección VaR
+                html += '<div class="col-md-4">';
+                html += '<div class="card border-danger">';
+                html += '<div class="card-header bg-danger text-white"><h6>Value at Risk (VaR)</h6></div>';
+                html += '<div class="card-body">';
+                if (!varData.error) {
+                    html += `<p class="small"><strong>VaR Histórico (95%):</strong></p>`;
+                    html += `<h5 class="text-danger">${varData.var_historico?.toLocaleString() || 'N/A'}</h5>`;
+                    html += `<p class="small"><strong>VaR Paramétrico (95%):</strong></p>`;
+                    html += `<h5 class="text-warning">${varData.var_parametrico?.toLocaleString() || 'N/A'}</h5>`;
+                    html += `<p class="small"><strong>Expected Shortfall:</strong></p>`;
+                    html += `<h6 class="text-info">${varData.expected_shortfall?.toLocaleString() || 'N/A'}</h6>`;
+                } else {
+                    html += '<div class="alert alert-warning small">No hay suficientes datos para VaR</div>';
+                }
+                html += '</div></div></div>';
+
+                // Sección Monte Carlo
+                html += '<div class="col-md-4">';
+                html += '<div class="card border-info">';
+                html += '<div class="card-header bg-info text-white"><h6>Monte Carlo</h6></div>';
+                html += '<div class="card-body">';
+                if (!mcData.error) {
+                    html += `<p class="small"><strong>Precio Promedio:</strong></p>`;
+                    html += `<h6>${mcData.precio_promedio_proyectado?.toFixed(2) || 'N/A'}</h6>`;
+                    html += `<p class="small"><strong>Volatilidad:</strong></p>`;
+                    html += `<h6>${mcData.volatilidad_proyectada?.toFixed(3) || 'N/A'}</h6>`;
+                    html += `<p class="small"><strong>Prob. Ganancia:</strong></p>`;
+                    html += `<h6 class="${mcData.probabilidad_ganancia > 50 ? 'text-success' : 'text-danger'}">${mcData.probabilidad_ganancia?.toFixed(1) || 'N/A'}%</h6>`;
+                } else {
+                    html += '<div class="alert alert-warning small">Error en simulación Monte Carlo</div>';
+                }
+                html += '</div></div></div>';
+
+                // Sección ESG
+                html += '<div class="col-md-4">';
+                html += '<div class="card border-success">';
+                html += '<div class="card-header bg-success text-white"><h6>ESG Score</h6></div>';
+                html += '<div class="card-body">';
+                if (!esgData.error) {
+                    html += `<p class="small"><strong>Score Total:</strong></p>`;
+                    html += `<h5 class="text-success">${esgData.esg_score?.total?.toFixed(1) || 'N/A'}/100</h5>`;
+                    html += `<p class="small"><strong>Ambiental (E):</strong> ${esgData.esg_score?.ambiental?.toFixed(1) || 'N/A'}</p>`;
+                    html += `<p class="small"><strong>Social (S):</strong> ${esgData.esg_score?.social?.toFixed(1) || 'N/A'}</p>`;
+                    html += `<p class="small"><strong>Gobierno (G):</strong> ${esgData.esg_score?.gobierno?.toFixed(1) || 'N/A'}</p>`;
+                    html += `<p class="small"><strong>Rating:</strong> <span class="badge bg-${esgData.esg_rating === 'Excelente' ? 'success' : esgData.esg_rating === 'Bueno' ? 'info' : 'warning'}">${esgData.esg_rating || 'N/A'}</span></p>`;
+                } else {
+                    html += '<div class="alert alert-warning small">No hay datos ESG disponibles</div>';
+                }
+                html += '</div></div></div>';
+
+                html += '</div>';
+
+                // Sección Stress Testing
+                html += '<div class="row mt-3">';
+                html += '<div class="col-12">';
+                html += '<div class="card border-warning">';
+                html += '<div class="card-header bg-warning text-dark"><h6>Stress Testing Automatizado</h6></div>';
+                html += '<div class="card-body">';
+                html += '<div class="row">';
+                html += '<div class="col-md-3"><small><strong>Crisis 2008:</strong><br><span class="text-danger">Cargando...</span></small></div>';
+                html += '<div class="col-md-3"><small><strong>COVID-19:</strong><br><span class="text-warning">Cargando...</span></small></div>';
+                html += '<div class="col-md-3"><small><strong>Crisis 2020:</strong><br><span class="text-info">Cargando...</span></small></div>';
+                html += '<div class="col-md-3"><small><strong>Inflación Alta:</strong><br><span class="text-success">Cargando...</span></small></div>';
+                html += '</div>';
+                html += '</div></div></div>';
+                html += '</div>';
+
+                document.getElementById('metricas-riesgo').innerHTML = html;
+
+                // Cargar Stress Testing por separado
+                cargarStressTesting(activoId);
+
+            } catch (error) {
+                console.error('Error cargando métricas de riesgo:', error);
+                document.getElementById('metricas-riesgo').innerHTML = 
+                    '<div class="alert alert-danger">Error cargando métricas de riesgo: ' + error.message + '</div>';
+            }
+        }
+
+        // Cargar VaR de cartera
+        async function cargarPortfolioVar() {
+            const nivelConfianza = document.getElementById('var-confidence').value;
+            const metodo = document.getElementById('var-metodo').value;
+
+            try {
+                const response = await fetch(`/api/advanced/portfolio-var?nivel_confianza=${nivelConfianza}&metodo=${metodo}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                let html = '<div class="row">';
+                html += '<div class="col-md-6">';
+                html += '<h6>Métricas de Riesgo</h6>';
+                html += '<ul class="list-unstyled small">';
+                html += `<li><strong>VaR (${Math.round(nivelConfianza * 100)}%):</strong> ${data.var_total?.toLocaleString() || 'N/A'}</li>`;
+                html += `<li><strong>% del Portfolio:</strong> ${data.var_porcentaje?.toFixed(2) || 'N/A'}%</li>`;
+                html += `<li><strong>Expected Shortfall:</strong> ${data.expected_shortfall?.toLocaleString() || 'N/A'}</li>`;
+                html += `<li><strong>Diversificación:</strong> ${data.diversificacion_beneficio || 'N/A'}</li>`;
+                html += '</ul></div>';
+                html += '<div class="col-md-6">';
+                html += '<h6>Contribución por Activo</h6>';
+                if (data.contribucion_activos && data.contribucion_activos.length > 0) {
+                    data.contribucion_activos.slice(0, 5).forEach(contrib => {
+                        const porcentaje = ((contrib[1] / data.var_total) * 100).toFixed(1);
+                        html += `<div class="progress mb-1" style="height: 20px;">`;
+                        html += `<div class="progress-bar" style="width: ${porcentaje}%">${contrib[0]}: ${porcentaje}%</div>`;
+                        html += `</div>`;
+                    });
+                } else {
+                    html += '<p class="small text-muted">No hay datos de contribución</p>';
+                }
+                html += '</div></div>';
+
+                // Agregar gráfico de barras con Plotly
+                if (data.contribucion_activos && data.contribucion_activos.length > 0) {
+                    const tickers = data.contribucion_activos.map(item => item[0]);
+                    const contribuciones = data.contribucion_activos.map(item => item[1]);
+
+                    const trace = {
+                        x: tickers,
+                        y: contribuciones,
+                        type: 'bar',
+                        marker: { color: '#ff6b6b' }
+                    };
+
+                    const layout = {
+                        title: 'Contribución al VaR por Activo',
+                        xaxis: { title: 'Activos' },
+                        yaxis: { title: 'Contribución ($)' },
+                        height: 300
+                    };
+
+                    setTimeout(() => {
+                        if (document.getElementById('portfolio-var-chart')) {
+                            Plotly.newPlot('portfolio-var-chart', [trace], layout, {responsive: true});
+                        }
+                    }, 100);
+                }
+
+                document.getElementById('portfolio-var').innerHTML = html + '<div id="portfolio-var-chart"></div>';
+
+            } catch (error) {
+                console.error('Error cargando VaR de cartera:', error);
+                document.getElementById('portfolio-var').innerHTML = 
+                    '<div class="alert alert-danger">Error cargando VaR de cartera: ' + error.message + '</div>';
+            }
+        }
+
+        // Cargar Stress Testing
+        async function cargarStressTesting(activoId) {
+            try {
+                const response = await fetch('/api/advanced/stress-testing');
+                const data = await response.json();
+
+                if (data.error) return;
+
+                // Actualizar las secciones de stress testing
+                const scenarios = [
+                    { key: 'crisis_2008', label: 'Crisis 2008', color: 'danger' },
+                    { key: 'covid_2020', label: 'COVID-19', color: 'warning' },
+                    { key: 'crisis_2022', label: 'Crisis 2022', color: 'info' },
+                    { key: 'inflacion_alta', label: 'Inflación Alta', color: 'success' }
+                ];
+
+                scenarios.forEach(scenario => {
+                    const element = document.querySelector(`[data-scenario="${scenario.key}"]`);
+                    if (element && data[scenario.key]) {
+                        element.innerHTML = `<span class="text-${scenario.color}">${data[scenario.key].cambio_porcentaje?.toFixed(1) || 'N/A'}%</span>`;
+                    }
+                });
+
+            } catch (error) {
+                console.error('Error cargando stress testing:', error);
+            }
+        }
+
         // Función para recargar todo
         async function recargarAnalisis() {
             // Mostrar indicadores de carga
@@ -715,7 +1007,18 @@
                 `;
             });
             
+            // Limpiar métricas de riesgo
+            document.getElementById('metricas-riesgo').innerHTML = 
+                '<div class="text-center"><p class="text-muted">Seleccione un activo para ver análisis de riesgo...</p></div>';
+            document.getElementById('portfolio-var').innerHTML = 
+                '<div class="text-center"><div class="spinner-border spinner-border-sm" role="status"></div><p class="mt-2">Calculando VaR de cartera...</p></div>';
+            
             await cargarAnalisisAvanzado();
+            
+            // Cargar VaR de cartera por defecto
+            setTimeout(() => {
+                cargarPortfolioVar();
+            }, 1000);
         }
 
         // Función para exportar reporte
@@ -738,6 +1041,11 @@
         // Inicializar dashboard
         document.addEventListener('DOMContentLoaded', function() {
             cargarAnalisisAvanzado();
+            
+            // Cargar VaR de cartera por defecto después de cargar análisis
+            setTimeout(() => {
+                cargarPortfolioVar();
+            }, 2000);
             
             // Actualizar cada 10 minutos
             setInterval(cargarAnalisisAvanzado, 600000);
