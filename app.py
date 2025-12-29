@@ -51,7 +51,7 @@ def register_blueprints(app):
     app.register_blueprint(api_metrics_bp)
     
     # APIs de métricas avanzadas
-    app.register_blueprint(api_advanced_bp)
+    app.register_blueprint(api_advanced_bp, url_prefix='/api/advanced')
     
     # APIs de reportes
     app.register_blueprint(api_reports_bp)

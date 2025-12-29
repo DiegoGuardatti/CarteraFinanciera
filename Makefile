@@ -166,12 +166,27 @@ docker-run:
 	docker-compose up -d
 	@echo "✅ Aplicación ejecutándose en http://localhost"
 
+# Setup completo automático
+setup-docker:
+	@echo "🚀 Configuración automática Docker..."
+	./setup-docker.sh
+
 # Ejecutar en desarrollo con Docker
 docker-dev:
 	@echo "🐳 Ejecutando desarrollo con Docker..."
 	docker-compose -f docker-compose.dev.yml up -d
 	@echo "✅ Desarrollo ejecutándose en http://localhost:5000"
 	@echo "📊 phpMyAdmin disponible en http://localhost:8080"
+
+# Ver estado de contenedores
+docker-status:
+	@echo "📊 Estado de contenedores:"
+	docker-compose -f docker-compose.dev.yml ps
+
+# Reiniciar solo la aplicación
+docker-restart-app:
+	@echo "🔄 Reiniciando aplicación..."
+	docker-compose -f docker-compose.dev.yml restart app
 
 # Detener contenedores Docker
 docker-stop:

@@ -61,7 +61,7 @@
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
             <li class="breadcrumb-item">
-                <a href="{{ url_for('index') }}" class="text-decoration-none">
+                <a href="{{ url_for('main.index') }}" class="text-decoration-none">
                     <i class="fas fa-home me-1" aria-hidden="true"></i>Inicio
                 </a>
             </li>
@@ -75,13 +75,11 @@
         <!-- Botones de acción rápida -->
         <div class="row mb-4">
             <div class="col-12 d-flex justify-content-end gap-2">
-                <a href="{{ url_for('importar_ventas') }}" class="btn btn-success">
-                    <i class="fas fa-file-import me-1"></i> Importar desde Archivo
-                </a>
-                <a href="{{ url_for('dashboard') }}" class="btn btn-info text-white">
+
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-info text-white">
                     <i class="fas fa-chart-line me-1"></i> Dashboard
                 </a>
-                <a href="{{ url_for('compra') }}" class="btn btn-outline-primary">
+                <a href="{{ url_for('main.compra') }}" class="btn btn-outline-primary">
                     <i class="fas fa-plus me-1"></i> Nueva Compra
                 </a>
             </div>
