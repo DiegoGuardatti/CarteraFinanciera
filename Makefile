@@ -1,6 +1,6 @@
 # Makefile para Cartera Financiera
 
-.PHONY: help install test lint format clean run start stop logs shell git-init
+.PHONY: help install test lint format clean run start stop logs shell git-init docker-build docker-run docker-dev docker-stop docker-logs docker-shell
 
 help:
 	@echo "🚀 COMANDOS DISPONIBLES:"
@@ -23,6 +23,14 @@ help:
 	@echo "  make git-init     - Inicializar repositorio Git"
 	@echo "  make git-status   - Ver estado de Git"
 	@echo "  make git-commit   - Commit con hooks automáticos"
+	@echo ""
+	@echo "🐳 DOCKER:"
+	@echo "  make docker-build - Construir imagen Docker"
+	@echo "  make docker-run   - Ejecutar con Docker (producción)"
+	@echo "  make docker-dev   - Ejecutar desarrollo con Docker"
+	@echo "  make docker-stop  - Detener contenedores Docker"
+	@echo "  make docker-logs  - Ver logs de contenedores"
+	@echo "  make docker-shell - Abrir shell en contenedor"
 	@echo ""
 	@echo "🧹 MANTENIMIENTO:"
 	@echo "  make clean        - Limpiar archivos temporales"
@@ -139,6 +147,48 @@ reset-db:
 	rm -f instance/cartera.db
 	python -c "from app import app, db; app.app_context().push(); db.create_all(); print('✅ Base de datos reseteada')"
 	@echo "✅ Base de datos reseteada"
+
+# COMANDOS DOCKER
+
+# Construir imagen Docker
+docker-build:
+	@echo "🐳 Construyendo imagen Docker..."
+	docker build -t cartera-financiera .
+	@echo "✅ Imagen Docker construida"
+
+# Ejecutar en producción con Docker
+docker-run:
+	@echo "🐳 Ejecutando con Docker (producción)..."
+	@if [ ! -f .env ]; then \
+		echo "⚠️ Archivo .env no encontrado, copiando .env.template"; \
+		cp .env.template .env; \
+	fi
+	docker-compose up -d
+	@echo "✅ Aplicación ejecutándose en http://localhost"
+
+# Ejecutar en desarrollo con Docker
+docker-dev:
+	@echo "🐳 Ejecutando desarrollo con Docker..."
+	docker-compose -f docker-compose.dev.yml up -d
+	@echo "✅ Desarrollo ejecutándose en http://localhost:5000"
+	@echo "📊 phpMyAdmin disponible en http://localhost:8080"
+
+# Detener contenedores Docker
+docker-stop:
+	@echo "🛑 Deteniendo contenedores Docker..."
+	docker-compose down
+	docker-compose -f docker-compose.dev.yml down
+	@echo "✅ Contenedores detenidos"
+
+# Ver logs de contenedores
+docker-logs:
+	@echo "📋 Mostrando logs de contenedores:"
+	docker-compose logs -f
+
+# Abrir shell en contenedor
+docker-shell:
+	@echo "🐚 Abriendo shell en contenedor..."
+	docker-compose exec app bash
 
 # Desarrollo completo
 dev: clean install
