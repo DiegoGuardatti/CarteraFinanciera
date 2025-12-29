@@ -50,3 +50,6 @@ flasgger==0.9.7.1
 
 # Para rate limiting y seguridad
 Flask-Limiter==4.1.0
+
+# Para producción con Docker
+Gunicorn==21.2.0
