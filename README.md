@@ -129,6 +129,7 @@ GET /api/reports/detalle-pdf    # PDF detallado
 
 - 📋 **[MEJORAS_UNIFICADAS_FASES.md](MEJORAS_UNIFICADAS_FASES.md)** - Roadmap completo de mejoras organizadas por prioridad
 - 🐳 **[DOCKER_GIT_IMPLEMENTACION.md](DOCKER_GIT_IMPLEMENTACION.md)** - Plan de Dockerización y Git
+- 🌳 **[GIT_BRANCHING_STRATEGY.md](GIT_BRANCHING_STRATEGY.md)** - Estrategia de branching y workflow profesional
 - 📊 **[README_MINERIA.md](README_MINERIA.md)** - Sistema de importación de datos
 - 🗂️ **[ARCHIVOS_DUPLICADOS_ELIMINAR.md](ARCHIVOS_DUPLICADOS_ELIMINAR.md)** - Historial de limpieza
 
@@ -229,13 +230,48 @@ docker-compose logs -f app
 
 ## 🔄 Control de Versiones
 
-### Git Workflow
+### Estrategia de Ramas
+
+Ver **[GIT_BRANCHING_STRATEGY.md](GIT_BRANCHING_STRATEGY.md)** para documentación completa.
 
 ```bash
-git status             # Ver estado
-git add .             # Agregar cambios
-git commit -m "mensaje"  # Commit (ejecuta hooks automáticamente)
-git push              # Push (ejecuta tests automáticamente)
+# Estructura de ramas
+main                    # Producción - Código estable
+├── develop            # Desarrollo - Integración de features
+├── feature/*          # Features específicas (ej: docker-implementation)
+├── bugfix/*           # Corrección de bugs
+├── hotfix/*           # Hotfixes urgentes
+└── release/*          # Preparación de releases
+
+# Workflow recomendado
+1. git checkout develop
+2. git checkout -b feature/nueva-funcionalidad
+3. [desarrollo]
+4. git checkout develop && git merge feature/nueva-funcionalidad
+```
+
+### Ramas Actuales
+
+```bash
+git branch -a          # Ver todas las ramas
+
+# Ramas creadas:
+main
+├── develop
+├── feature/docker-implementation
+├── feature/app-refactoring
+├── feature/testing-system
+├── feature/security-hardening
+└── feature/performance-optimization
+```
+
+### Commits Convencionales
+
+```bash
+git commit -m "feat(api): agregar endpoint TIR"
+git commit -m "fix(ui): solucionar responsive"
+git commit -m "refactor(app): modularizar rutas"
+git commit -m "test(metrics): tests ROI"
 ```
 
 ### Hooks Configurados
