@@ -1,0 +1,52 @@
+# Requirements para Cartera Financiera
+# Instalación: pip install -r requirements.txt
+
+# Framework web principal
+Flask==2.3.3
+Flask-SQLAlchemy==3.0.5
+Flask-Migrate==4.0.5
+
+# Conexión MySQL
+PyMySQL==1.1.0
+
+# Configuración por variables de entorno
+python-dotenv==1.0.0
+
+# Para análisis financiero y métricas
+numpy>=1.24.4
+pandas>=2.1.0
+scipy>=1.11.2
+
+# Para gráficos y visualización
+plotly>=5.16.0
+matplotlib>=3.8.0
+
+# Para reportes PDF
+reportlab>=4.0.4
+
+# Para cache y performance
+redis==4.6.0
+flask-caching==2.0.2
+
+# Para logging
+loguru==0.7.0
+
+# Para testing
+pytest==7.4.0
+pytest-flask==1.2.0
+
+# Para scheduler de reportes automáticos
+celery==5.3.1
+
+# Para exportación Excel
+openpyxl==3.1.2
+
+# Para validaciones
+WTForms==3.0.1
+Flask-WTF==1.1.1
+
+# Para documentación API
+flasgger==0.9.7.1
+
+# Para rate limiting y seguridad
+Flask-Limiter==4.1.0

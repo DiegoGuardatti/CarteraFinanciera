@@ -1,0 +1,95 @@
+{
+  "metadata": {
+    "fecha_generacion": "2025-12-28T13:52:15.056820",
+    "total_operaciones": 18,
+    "total_transferencias": 0,
+    "total_tickers": 3
+  },
+  "resumen_general": {
+    "total_operaciones": 18,
+    "operaciones_activas": 10,
+    "operaciones_vendidas": 8,
+    "total_invertido_usd": 10424.87779,
+    "total_vendido_usd": 4675.0578,
+    "total_dividendos": 0,
+    "transferencias_entrada": 0,
+    "transferencias_salida": 0,
+    "total_mep_entradas_usd": 0,
+    "total_mep_salidas_usd": 0,
+    "ganancia_perdida_total_usd": -5749.819990000001
+  },
+  "por_ticker": {
+    "S29G5": {
+      "operaciones": 1,
+      "total_invertido_usd": 603.0634,
+      "total_vendido_usd": 0,
+      "dividendos": 0,
+      "activas": 1,
+      "vendidas": 0,
+      "rentabilidad_usd": -603.0634,
+      "rentabilidad_pct": -100.0
+    },
+    "VARIAS": {
+      "operaciones": 16,
+      "total_invertido_usd": 9338.8178,
+      "total_vendido_usd": 4675.0578000000005,
+      "dividendos": 0,
+      "activas": 8,
+      "vendidas": 8,
+      "rentabilidad_usd": -4663.76,
+      "rentabilidad_pct": -49.93951161569937
+    },
+    "S30S5": {
+      "operaciones": 1,
+      "total_invertido_usd": 482.99659,
+      "total_vendido_usd": 0,
+      "dividendos": 0,
+      "activas": 1,
+      "vendidas": 0,
+      "rentabilidad_usd": -482.99659,
+      "rentabilidad_pct": -100.0
+    }
+  },
+  "por_tipo_activo": {
+    "ACCION": {
+      "operaciones": 18,
+      "total_invertido_usd": 10424.87779,
+      "total_vendido_usd": 4675.0578000000005,
+      "dividendos": 0,
+      "tickers_unicos": [
+        "VARIAS",
+        "S29G5",
+        "S30S5"
+      ],
+      "num_tickers": 3,
+      "rentabilidad_usd": -5749.81999,
+      "rentabilidad_pct": -55.154795152759284
+    }
+  },
+  "evolucion_mensual": {
+    "2025-08": {
+      "compras_usd": 4926.69163,
+      "ventas_usd": 2164.6282300000003,
+      "dividendos": 0,
+      "transferencias_entrada_usd": 0,
+      "transferencias_salida_usd": 0,
+      "balance_usd": -2762.0634
+    },
+    "2025-09": {
+      "compras_usd": 482.99659,
+      "ventas_usd": 0,
+      "dividendos": 0,
+      "transferencias_entrada_usd": 0,
+      "transferencias_salida_usd": 0,
+      "balance_usd": -482.99659
+    },
+    "2025-10": {
+      "compras_usd": 5015.1895700000005,
+      "ventas_usd": 2510.42957,
+      "dividendos": 0,
+      "transferencias_entrada_usd": 0,
+      "transferencias_salida_usd": 0,
+      "balance_usd": -2504.7600000000007
+    }
+  }
+}

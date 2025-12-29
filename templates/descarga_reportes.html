@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Descarga de Reportes - Cartera Financiera</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/static/estilos.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-chart-line me-2"></i>Cartera Financiera
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('index') }}">
+                    <i class="fas fa-home me-1"></i>Inicio
+                </a>
+                <a class="nav-link" href="{{ url_for('dashboard') }}">
+                    <i class="fas fa-chart-bar me-1"></i>Dashboard
+                </a>
+                <a class="nav-link" href="/apidocs">
+                    <i class="fas fa-code me-1"></i>API Docs
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h3 class="card-title mb-0">
+                            <i class="fas fa-download me-2"></i>Descarga de Reportes Avanzados
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        
+                        <!-- Formulario de Filtros -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5><i class="fas fa-filter me-2"></i>Filtros (Opcional)</h5>
+                                <form id="filtrosReportes" class="row g-3">
+                                    <div class="col-md-3">
+                                        <label for="filtroBroker" class="form-label">Broker</label>
+                                        <select class="form-select" id="filtroBroker" name="Id_Broker">
+                                            <option value="">Todos los Brokers</option>
+                                            {% for broker in brokers %}
+                                                <option value="{{ broker.Id_Broker }}">{{ broker.Nombre }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="filtroComitente" class="form-label">Comitente</label>
+                                        <select class="form-select" id="filtroComitente" name="Id_Comitente">
+                                            <option value="">Todos los Comitentes</option>
+                                            {% for comitente in comitentes %}
+                                                <option value="{{ comitente.Id_Comitente }}">{{ comitente.Titular }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="filtroTicker" class="form-label">Ticker</label>
+                                        <select class="form-select" id="filtroTicker" name="Id_Ticker">
+                                            <option value="">Todos los Tickers</option>
+                                            {% for ticker in tickers %}
+                                                <option value="{{ ticker.Id_Ticker }}">{{ ticker.Nombre_Ticker }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="filtroEstado" class="form-label">Estado</label>
+                                        <select class="form-select" id="filtroEstado" name="Activo_Estado">
+                                            <option value="">Todos los Estados</option>
+                                            <option value="EN_CARTERA">En Cartera</option>
+                                            <option value="VENDIDO">Vendido</option>
+                                        </select>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Botones de Descarga -->
+                        <div class="row">
+                            <div class="col-12">
+                                <h5><i class="fas fa-file-export me-2"></i>Formatos de Reporte Disponibles</h5>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <!-- Reportes CSV -->
+                            <div class="col-lg-6">
+                                <div class="card h-100 border-primary">
+                                    <div class="card-header bg-primary text-white">
+                                        <h6 class="card-title mb-0">
+                                            <i class="fas fa-file-csv me-2"></i>Reportes CSV
+                                        </h6>
+                                    </div>
+                                    <div class="card-body d-flex flex-column">
+                                        <p class="card-text">Archivos de texto separados por comas, ideales para análisis en Excel u otras herramientas.</p>
+                                        <div class="mt-auto">
+                                            <div class="d-grid gap-2">
+                                                <button class="btn btn-outline-primary" onclick="descargarReporte('activos-csv')">
+                                                    <i class="fas fa-download me-2"></i>Detalle de Activos CSV
+                                                </button>
+                                                <button class="btn btn-outline-primary" onclick="descargarReporte('resumen-csv')">
+                                                    <i class="fas fa-download me-2"></i>Resumen de Cartera CSV
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Reportes Excel -->
+                            <div class="col-lg-6">
+                                <div class="card h-100 border-success">
+                                    <div class="card-header bg-success text-white">
+                                        <h6 class="card-title mb-0">
+                                            <i class="fas fa-file-excel me-2"></i>Reportes Excel
+                                        </h6>
+                                    </div>
+                                    <div class="card-body d-flex flex-column">
+                                        <p class="card-text">Archivos Excel profesionales con múltiples hojas, gráficos y análisis detallado.</p>
+                                        <div class="mt-auto">
+                                            <div class="d-grid gap-2">
+                                                <button class="btn btn-outline-success" onclick="descargarReporte('activos-excel')">
+                                                    <i class="fas fa-download me-2"></i>Excel Completo (.xlsx)
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Reportes PDF -->
+                            <div class="col-lg-6">
+                                <div class="card h-100 border-danger">
+                                    <div class="card-header bg-danger text-white">
+                                        <h6 class="card-title mb-0">
+                                            <i class="fas fa-file-pdf me-2"></i>Reportes PDF
+                                        </h6>
+                                    </div>
+                                    <div class="card-body d-flex flex-column">
+                                        <p class="card-text">Documentos PDF profesionales con formato corporativo, ideales para presentaciones.</p>
+                                        <div class="mt-auto">
+                                            <div class="d-grid gap-2">
+                                                <button class="btn btn-outline-danger" onclick="descargarReporte('ejecutivo-pdf')">
+                                                    <i class="fas fa-download me-2"></i>Reporte Ejecutivo PDF
+                                                </button>
+                                                <button class="btn btn-outline-danger" onclick="descargarReporte('detalle-pdf')">
+                                                    <i class="fas fa-download me-2"></i>Detalle Completo PDF
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- APIs REST -->
+                            <div class="col-lg-6">
+                                <div class="card h-100 border-warning">
+                                    <div class="card-header bg-warning text-dark">
+                                        <h6 class="card-title mb-0">
+                                            <i class="fas fa-code me-2"></i>APIs REST
+                                        </h6>
+                                    </div>
+                                    <div class="card-body d-flex flex-column">
+                                        <p class="card-text">Acceso directo a las APIs para integración con otras aplicaciones y sistemas.</p>
+                                        <div class="mt-auto">
+                                            <div class="d-grid gap-2">
+                                                <a href="/apidocs" class="btn btn-outline-warning" target="_blank">
+                                                    <i class="fas fa-external-link-alt me-2"></i>Documentación API Swagger
+                                                </a>
+                                                <button class="btn btn-outline-warning" onclick="mostrarEjemplosAPI()">
+                                                    <i class="fas fa-info-circle me-2"></i>Ver Ejemplos de Uso
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Información Adicional -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <h6><i class="fas fa-info-circle me-2"></i>Información Importante</h6>
+                                    <ul class="mb-0">
+                                        <li>Los reportes se generan con la información más actualizada de la base de datos</li>
+                                        <li>Los nombres de archivo incluyen timestamp para evitar confusión entre versiones</li>
+                                        <li>Los filtros seleccionados se aplicarán automáticamente a los reportes</li>
+                                        <li>Los reportes Excel incluyen múltiples hojas con análisis detallado</li>
+                                        <li>Los PDFs tienen formato profesional adecuado para presentaciones ejecutivas</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Ejemplos de API -->
+    <div class="modal fade" id="modalEjemplosAPI" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Ejemplos de Uso de APIs</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <h6>curl Examples:</h6>
+                    <div class="bg-dark text-light p-3 rounded">
+                        <pre><code># CSV de activos con filtros
+curl -X GET "http://localhost:5000/api/reports/activos-csv?Id_Broker=1&Activo_Estado=EN_CARTERA" \
+  -H "Accept: text/csv" \
+  --output activos_filtrados.csv
+
+# Excel completo
+curl -X GET "http://localhost:5000/api/reports/activos-excel" \
+  -H "Accept: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" \
+  --output reporte_completo.xlsx
+
+# PDF ejecutivo
+curl -X GET "http://localhost:5000/api/reports/ejecutivo-pdf" \
+  -H "Accept: application/pdf" \
+  --output reporte_ejecutivo.pdf
+
+# API de métricas en JSON
+curl -X GET "http://localhost:5000/api/dashboard/summary" \
+  -H "Accept: application/json"</code></pre>
+                    </div>
+                    
+                    <h6 class="mt-3">JavaScript/jQuery Examples:</h6>
+                    <div class="bg-dark text-light p-3 rounded">
+                        <pre><code>// Descargar CSV via JavaScript
+function descargarCSV() {
+    const filtros = {
+        Id_Broker: $('#filtroBroker').val(),
+        Id_Ticker: $('#filtroTicker').val(),
+        Activo_Estado: $('#filtroEstado').val()
+    };
+    
+    const params = new URLSearchParams(filtros);
+    window.open(`/api/reports/activos-csv?${params}`, '_blank');
+}
+
+// Obtener métricas en JSON
+async function obtenerMetricas() {
+    try {
+        const response = await fetch('/api/dashboard/summary');
+        const data = await response.json();
+        console.log('Métricas:', data);
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}</code></pre>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <a href="/apidocs" class="btn btn-primary" target="_blank">
+                        <i class="fas fa-external-link-alt me-1"></i>Ver Documentación Completa
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast para notificaciones -->
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+        <div id="toastNotificacion" class="toast" role="alert">
+            <div class="toast-header">
+                <i class="fas fa-download text-primary me-2"></i>
+                <strong class="me-auto">Descarga Iniciada</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">
+                Tu reporte se está descargando. Por favor espera...
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/funciones.js"></script>
+    <script>
+        function descargarReporte(tipoReporte) {
+            // Obtener filtros del formulario
+            const filtros = {
+                Id_Broker: document.getElementById('filtroBroker').value,
+                Id_Comitente: document.getElementById('filtroComitente').value,
+                Id_Ticker: document.getElementById('filtroTicker').value,
+                Activo_Estado: document.getElementById('filtroEstado').value
+            };
+
+            // Construir URL con parámetros
+            const params = new URLSearchParams();
+            Object.keys(filtros).forEach(key => {
+                if (filtros[key]) {
+                    params.append(key, filtros[key]);
+                }
+            });
+
+            // URL del endpoint
+            const url = `/api/reports/${tipoReporte}${params.toString() ? '?' + params.toString() : ''}`;
+            
+            // Mostrar notificación
+            const toast = new bootstrap.Toast(document.getElementById('toastNotificacion'));
+            toast.show();
+
+            // Crear link temporal para descarga
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = '';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function mostrarEjemplosAPI() {
+            const modal = new bootstrap.Modal(document.getElementById('modalEjemplosAPI'));
+            modal.show();
+        }
+
+        // Auto-actualizar comitentes cuando cambia el broker
+        document.getElementById('filtroBroker').addEventListener('change', function() {
+            const brokerId = this.value;
+            const comitenteSelect = document.getElementById('filtroComitente');
+            
+            // Limpiar opciones de comitente
+            comitenteSelect.innerHTML = '<option value="">Todos los Comitentes</option>';
+            
+            if (brokerId) {
+                // Aquí podrías hacer una llamada AJAX para cargar los comitentes del broker
+                // fetch(`/get_comitentes/${brokerId}`)
+                //     .then(response => response.json())
+                //     .then(data => {
+                //         data.comitentes.forEach(comitente => {
+                //             const option = document.createElement('option');
+                //             option.value = comitente.Id_Comitente;
+                //             option.textContent = comitente.Titular;
+                //             comitenteSelect.appendChild(option);
+                //         });
+                //     });
+            }
+        });
+
+        // Mejorar UX con indicadores de carga
+        document.querySelectorAll('.btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const originalText = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Procesando...';
+                this.disabled = true;
+                
+                setTimeout(() => {
+                    this.innerHTML = originalText;
+                    this.disabled = false;
+                }, 2000);
+            });
+        });
+    </script>
+</body>
+</html>

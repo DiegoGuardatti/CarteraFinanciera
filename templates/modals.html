@@ -1,0 +1,371 @@
+
+<!-- Modal Registro Broker-->
+<div class="modal fade" id="brokerModal" tabindex="-1" role="dialog" aria-labelledby="brokerModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="brokerModalLabel">Registrar Broker</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="/registrar_broker">
+                    <div class="form-group">
+                        <label for="Nombre_broker">Broker</label>
+                        <input type="text" class="form-control" id="Nombre_broker" name="Nombre_broker" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="Comision_broker">Comisión</label>
+                        <input type="number" class="form-control" id="Comision_broker" name="Comision_broker" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="Asesor_broker">Asesor</label>
+                        <input type="text" class="form-control" id="Asesor_broker" name="Asesor_broker">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Enviar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Registro Comitente -->
+<div class="modal fade" id="comitenteModal" tabindex="-1" role="dialog" aria-labelledby="comitenteModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="comitenteModalLabel">Registrar Comitente</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="/registrar_comitente">
+                    <div class="form-group">
+                        <label for="Id_Broker">Broker</label>
+                        <select class="form-select shadow-sm" id="Id_Broker" name="Id_Broker" required>
+                            <option value="">Seleccionar...</option>
+                            {% for broker in brokers %}
+                                <option value="{{ broker.Id_Broker }}">{{ broker.Nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="Titular_comitente">Titular</label>
+                        <input type="text" class="form-control" id="Titular_comitente" name="Titular_comitente" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="Numero_comitente">Número Comitente</label>
+                        <input type="text" class="form-control" id="Numero_comitente" name="Numero_comitente" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Enviar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para agregar nuevo instrumento financiero -->
+<div class="modal fade" id="InstrumentoModal" tabindex="-1" aria-labelledby="InstrumentoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="InstrumentoModalLabel">Agregar Instrumento Financiero</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="/registrar_InstrumentoFinanciero">
+                    <div class="mb-3">
+                        <label for="Nombre_InstrumentoFinanciero" class="form-label">Nombre del Instrumento</label>
+                        <input type="text" class="form-control" id="Nombre_InstrumentoFinanciero" name="Nombre_InstrumentoFinanciero" oninput="this.value = this.value.toUpperCase()" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Agregar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para registrar un ticker -->
+<div class="modal fade" id="TickerModal" tabindex="-1" role="dialog" aria-labelledby="TickerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="TickerModalLabel">Registrar Ticker del Instrumento</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="formRegistrarTicker">
+                    <div class="form-group">
+                        <label for="nuevoTicker">Ticker del Instrumento</label>
+                        <input type="text" class="form-control" id="nuevoTicker" name="nuevoTicker" oninput="this.value = this.value.toUpperCase()" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="modaldescripcionTicker">Descripción del Ticker</label>
+                        <input type="text" class="form-control" id="modaldescripcionTicker" name="modaldescripcionTicker" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="selectInstrumento">Seleccionar Instrumento Financiero</label>
+                        <select class="form-select" id="selectInstrumento" name="selectInstrumento" required>
+                            <option value="">Seleccionar...</option>
+                            {% for instrumento in InstrumentoFinancieros %}
+                                <option value="{{ instrumento.Id_InstrumentoFinanciero }}">{{ instrumento.Nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Enviar</button>
+                </form>
+                <div id="tickerError" class="alert alert-danger mt-2" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Venta -->
+<div class="modal fade" id="ventaModal" tabindex="-1" aria-labelledby="ventaModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ventaModalLabel">Registrar Venta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="ventaForm">
+                    <input type="hidden" name="Id_Activo" id="Id_Activo">
+
+                    <div class="mb-3">
+                        <label class="form-label">Fecha</label>
+                        <input type="datetime-local" class="form-control" name="Fecha_Hora_Venta" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Precio Venta (ARS)</label>
+                        <input type="number" step="0.01" class="form-control" id="PrecioVenta" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Dólar MEP</label>
+                        <input type="number" step="0.01" class="form-control" id="PrecioDolarMEPVenta" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Cantidad</label>
+                        <input type="number" step="any" class="form-control" id="cantidadVenta" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Total Pesos</label>
+                        <input type="text" class="form-control" id="totalPesosVenta" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Total Dólares</label>
+                        <input type="text" class="form-control" id="totalDolaresVenta" readonly>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Registrar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<!-- JavaScript para validar y ocultar el modal -->
+<!-- <script>
+    document.getElementById('formRegistrarTicker').addEventListener('submit', function(event) {
+        event.preventDefault(); // Prevent the form from submitting the default way
+
+        const ticker = document.getElementById('nuevoTicker').value;
+        const descripcion = document.getElementById('descripcionTicker').value;
+        const instrumento = document.getElementById('selectInstrumento').value;
+
+        fetch('/validar_ticker', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `nuevoTicker=${ticker}&descripcionTicker=${descripcion}&selectInstrumento=${instrumento}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.existe) {
+                document.getElementById('tickerError').innerText = data.mensaje;
+                document.getElementById('tickerError').style.display = 'block';
+            } else {
+                // Submit the form if the ticker is valid
+                document.getElementById('tickerError').style.display = 'none';
+                $('#TickerModal').modal('hide'); // Hide the modal using jQuery
+                // Submit the form using JavaScript
+                document.getElementById('formRegistrarTicker').submit();
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+</script> -->
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('formRegistrarTicker').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const ticker = document.getElementById('nuevoTicker').value.trim().toUpperCase();
+        const descripcion = document.getElementById('modaldescripcionTicker').value.trim();
+        const instrumento = document.getElementById('selectInstrumento').value;
+
+        fetch('/validar_ticker', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `nuevoTicker=${ticker}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.existe) {
+                // Mostrar el mensaje de error y limpiar los campos después de 5 segundos
+                document.getElementById('tickerError').innerText = data.mensaje;
+                document.getElementById('tickerError').style.display = 'block';
+
+                setTimeout(() => {
+                    document.getElementById('tickerError').style.display = 'none';
+                    document.getElementById('nuevoTicker').value = '';
+                    document.getElementById('modaldescripcionTicker').value = '';
+                    document.getElementById('selectInstrumento').value = '';
+                }, 3000); // 5000 ms = 5 segundos
+            } else {
+                document.getElementById('tickerError').style.display = 'none';
+
+                // Submit the form data via a POST request to register the ticker
+                fetch('/registrar_ticker', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `nuevoTicker=${ticker}&modaldescripcionTicker=${descripcion}&selectInstrumento=${instrumento}`
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Limpiar los campos después de enviar correctamente
+                        document.getElementById('nuevoTicker').value = '';
+                        document.getElementById('modaldescripcionTicker').value = '';
+                        document.getElementById('selectInstrumento').value = '';
+                        $('#TickerModal').modal('hide'); // Ocultar el modal
+                        window.location.href = '/compra'; // Redireccionar a la página de compra
+                    }
+                })
+                .catch(error => console.error('Error registrando el ticker:', error));
+            }
+        })
+        .catch(error => console.error('Error validando el ticker:', error));
+    });
+});
+
+</script>
+
+<!-- <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('modal');  // Verifica si el modal existe
+        if (modal) {
+            const precioVentaInput = document.getElementById('precioVenta');
+            const cantidadVentaInput = document.getElementById('cantidadVenta');
+            const precioDolarMEPInput = document.getElementById('precioDolarMEP');
+            const totalDolaresVentaInput = document.getElementById('totalDolaresVenta');
+            const totalPesosVentaInput = document.getElementById('totalPesosVenta');
+            
+            if (!precioVentaInput || !cantidadVentaInput || !precioDolarMEPInput || !totalDolaresVentaInput || !totalPesosVentaInput) {
+            console.error('Uno o más elementos del formulario no fueron encontrados.');
+                return;
+            }
+
+            function calcularTotales() {
+                const precioVenta = parseFloat(precioVentaInput.value) || 0;
+                const cantidadVenta = parseFloat(cantidadVentaInput.value) || 0;
+                const precioDolarMEP = parseFloat(precioDolarMEPInput.value) || 0;
+                
+                console.log('Precio Venta:', precioVenta);
+                console.log('Cantidad Venta:', cantidadVenta);
+                console.log('Precio Dólar MEP:', precioDolarMEP);
+
+                // Calcular el total en dólares
+                console.log(totalDolares = (precioVenta * cantidadVenta).toFixed(2));
+                totalDolaresVentaInput.value = totalDolares;
+        
+                // Calcular el total en pesos
+                if (precioDolarMEP > 0) {
+                    const totalPesos = (precioVenta * cantidadVenta * precioDolarMEP).toFixed(2);
+                    totalPesosVentaInput.value = totalPesos;
+                } else {
+                    totalPesosVentaInput.value = '';
+                }
+            }
+        
+            // Asocia la función de cálculo a los eventos de cambio en los campos relevantes
+            precioVentaInput.addEventListener('input', calcularTotales);
+            cantidadVentaInput.addEventListener('input', calcularTotales);
+            precioDolarMEPInput.addEventListener('input', calcularTotales);
+        }
+    });
+    </script> -->
+
+<script>
+    document.querySelector('input[name="cantidadVenta"]').addEventListener('input', function() {
+    const precioVenta = parseFloat(document.querySelector('input[name="PrecioVenta"]').value) || 0;
+    const precioDolarMEPVenta = parseFloat(document.querySelector('input[name="PrecioDolarMEPVenta"]').value) || 0;
+    const cantidadVenta = parseFloat(this.value) || 0;
+
+    const totalPesosVenta = precioVenta * cantidadVenta;
+    const totalDolaresVenta = (totalPesosVenta / precioDolarMEPVenta) || 0;
+
+    document.getElementById('totalPesosVenta').value = totalPesosVenta.toFixed(2);
+    document.getElementById('totalDolaresVenta').value = totalDolaresVenta.toFixed(2);
+});
+
+</script>
+
+
+<!-- <script>
+    document.addEventListener('DOMContentLoaded', function() {
+    const ventaForm = document.getElementById('ventaForm');
+
+    if (!ventaForm) {
+        console.error('Formulario "ventaForm" no encontrado.');
+        return; // Detener la ejecución si no existe el formulario
+    }
+
+    ventaForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const formData = new FormData(ventaForm);
+        const idActivo = ventaForm.querySelector('input[name="Id_Activo"]').value;
+
+        const data = {
+            Id_Activo: idActivo,
+            Fecha_Hora_Venta: formData.get('Fecha_Hora_Venta'),
+            PrecioVenta: formData.get('PrecioVenta'),
+            PrecioDolarMEPVenta: formData.get('PrecioDolarMEPVenta'),
+            CantidadVenta: formData.get('cantidadVenta'),
+            Total_Pesos_Venta: formData.get('totalPesosVenta'),
+            Total_Dolares_Venta: formData.get('totalDolaresVenta')
+        };
+
+        fetch('/registrar_venta', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            alert(result.message);
+            $('#ventaModal').modal('hide'); // Ocultar el modal
+        })
+        .catch(error => {
+            console.error('Error al registrar la venta:', error);
+        });
+    });
+});
+
+    
+</script> -->
+

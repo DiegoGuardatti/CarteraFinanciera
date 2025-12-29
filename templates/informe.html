@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Informes de Cartera - Cartera Financiera</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='estilos.css') }}" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+</head>
+<body class="bg-light">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-chart-line me-2"></i>
+                Cartera Financiera
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="fas fa-home me-1"></i>Inicio
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('compra') }}">
+                            <i class="fas fa-shopping-cart me-1"></i>Compra
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('venta') }}">
+                            <i class="fas fa-cash-register me-1"></i>Venta
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('informe') }}">
+                            <i class="fas fa-chart-bar me-1"></i>Informes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">
+                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard_avanzado') }}">
+                            <i class="fas fa-university me-1"></i>Dashboard Avanzado
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('descarga_reportes') }}">
+                            <i class="fas fa-download me-1"></i>Reportes
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="h2 mb-1">
+                            <i class="fas fa-chart-bar me-2 text-primary"></i>
+                            Informes de Cartera
+                        </h1>
+                        <p class="text-muted mb-0">Análisis detallado de tus inversiones</p>
+                    </div>
+                    <div class="text-end">
+                        <small class="text-muted">
+                            <i class="fas fa-clock me-1"></i>
+                            <span id="current-time"></span>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Filtros Avanzados -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-filter me-2"></i>
+                    Filtros de Búsqueda
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="filtrosForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row g-3">
+                        <!-- Broker -->
+                        <div class="col-md-6 col-lg-3">
+                            <label for="Broker" class="form-label fw-bold">
+                                <i class="fas fa-building me-1"></i>Broker
+                            </label>
+                            <select class="form-select shadow-sm" id="Broker" name="Id_Broker">
+                                <option value="">Seleccionar broker...</option>
+                                {% for broker in brokers %}
+                                    <option value="{{ broker.Id_Broker }}">{{ broker.Nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Comitente -->
+                        <div class="col-md-6 col-lg-3">
+                            <label for="Comitente" class="form-label fw-bold">
+                                <i class="fas fa-user me-1"></i>Comitente
+                            </label>
+                            <select class="form-select shadow-sm" id="Comitente" name="Id_Comitente">
+                                <option value="">Seleccionar comitente...</option>
+                            </select>
+                        </div>
+
+                        <!-- Instrumento Financiero -->
+                        <div class="col-md-6 col-lg-3">
+                            <label for="tipoInstrumento" class="form-label fw-bold">
+                                <i class="fas fa-chart-line me-1"></i>Instrumento
+                            </label>
+                            <select class="form-select shadow-sm" id="tipoInstrumento" name="Id_InstrumentoFinanciero">
+                                <option value="">Seleccionar instrumento...</option>
+                                {% for instrumento in InstrumentoFinancieros %}
+                                    <option value="{{ instrumento.Id_InstrumentoFinanciero }}">{{ instrumento.Nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Ticker -->
+                        <div class="col-md-6 col-lg-3">
+                            <label for="tickernombre" class="form-label fw-bold">
+                                <i class="fas fa-hashtag me-1"></i>Ticker
+                            </label>
+                            <select class="form-select shadow-sm" id="tickernombre" name="Id_Ticker">
+                                <option value="">Seleccionar ticker...</option>
+                            </select>
+                        </div>
+
+                        <!-- Estado del Activo -->
+                        <div class="col-md-6 col-lg-3">
+                            <label for="activoEstado" class="form-label fw-bold">
+                                <i class="fas fa-info-circle me-1"></i>Estado
+                            </label>
+                            <select class="form-select shadow-sm" name="Activo_Estado" id="activoEstado">
+                                <option value="">Todos los estados</option>
+                            </select>
+                        </div>
+
+                        <!-- Descripción del Ticker -->
+                        <div class="col-md-6 col-lg-6">
+                            <label for="descripcionTicker" class="form-label fw-bold">
+                                <i class="fas fa-file-alt me-1"></i>Descripción
+                            </label>
+                            <input type="text" class="form-control shadow-sm bg-light" id="descripcionTicker" readonly
+                                   placeholder="Se completará automáticamente al seleccionar el ticker">
+                        </div>
+                    </div>
+
+                    <!-- Botones de acción -->
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-outline-secondary" onclick="limpiarFiltros()">
+                                <i class="fas fa-eraser me-1"></i>Limpiar
+                            </button>
+                            <button type="button" class="btn btn-outline-info" onclick="aplicarFiltros()">
+                                <i class="fas fa-search me-1"></i>Buscar
+                            </button>
+                        </div>
+                        <div class="text-muted small">
+                            <i class="fas fa-lightbulb me-1"></i>
+                            Selecciona todos los filtros para obtener resultados precisos
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Resultados -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-table me-2"></i>
+                    Resultados de la Búsqueda
+                </h5>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-light btn-sm" onclick="exportarTabla()" title="Exportar a Excel">
+                        <i class="fas fa-file-excel me-1"></i>Excel
+                    </button>
+                    <button class="btn btn-light btn-sm" onclick="exportarTablaCSV()" title="Exportar a CSV">
+                        <i class="fas fa-file-csv me-1"></i>CSV
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Estado de carga -->
+                <div id="loading-state" class="text-center py-5" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <p class="mt-3 text-muted">Buscando operaciones...</p>
+                </div>
+
+                <!-- Mensaje inicial -->
+                <div id="initial-state" class="text-center py-5">
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Selecciona los filtros para buscar operaciones</h5>
+                    <p class="text-muted small">Completa todos los campos requeridos para obtener resultados precisos</p>
+                </div>
+
+                <!-- Tabla de resultados -->
+                <div id="results-container" style="display: none;">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped" id="tablaResultados">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th scope="col">
+                                        <i class="fas fa-calendar me-1"></i>Fecha Compra
+                                    </th>
+                                    <th scope="col">
+                                        <i class="fas fa-tag me-1"></i>Precio Compra
+                                    </th>
+                                    <th scope="col">
+                                        <i class="fas fa-hashtag me-1"></i>Cantidad
+                                    </th>
+                                    <th scope="col">
+                                        <i class="fas fa-dollar-sign me-1"></i>Total ARS
+                                    </th>
+                                    <th scope="col">
+                                        <i class="fas fa-calendar-check me-1"></i>Fecha Venta
+                                    </th>
+                                    <th scope="col">
+                                        <i class="fas fa-tags me-1"></i>Precio Venta
+                                    </th>
+                                    <th scope="col">
+                                        <i class="fas fa-coins me-1"></i>Total Venta
+                                    </th>
+                                    <th scope="col">
+                                        <i class="fas fa-chart-line me-1"></i>Ganancia
+                                    </th>
+                                    <th scope="col">
+                                        <i class="fas fa-percentage me-1"></i>% Ganancia
+                                    </th>
+                                    <th scope="col">
+                                        <i class="fas fa-exchange-alt me-1"></i>Dólar MEP
+                                    </th>
+                                    <th scope="col">
+                                        <i class="fas fa-trophy me-1"></i>% Dólares
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="resultados-body">
+                                <!-- Los resultados se cargarán aquí dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Resumen de resultados -->
+                    <div id="resultados-resumen" class="mt-3 p-3 bg-light rounded" style="display: none;">
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <strong class="text-primary">Total Operaciones</strong>
+                                <div class="h5 mb-0" id="total-operaciones">0</div>
+                            </div>
+                            <div class="col-md-3">
+                                <strong class="text-success">Ganancia Total</strong>
+                                <div class="h5 mb-0 text-success" id="ganancia-total">$0</div>
+                            </div>
+                            <div class="col-md-3">
+                                <strong class="text-info">Activos Activos</strong>
+                                <div class="h5 mb-0 text-info" id="activos-activos">0</div>
+                            </div>
+                            <div class="col-md-3">
+                                <strong class="text-warning">Activos Vendidos</strong>
+                                <div class="h5 mb-0 text-warning" id="activos-vendidos">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mensaje de no resultados -->
+                <div id="no-results" class="text-center py-5" style="display: none;">
+                    <i class="fas fa-search-minus fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No se encontraron operaciones</h5>
+                    <p class="text-muted small">Intenta ajustar los filtros de búsqueda</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+        const brokerSelect = document.getElementById('Broker');
+        const comitenteSelect = document.getElementById('Comitente');
+        const tipoInstrumentoSelect = document.getElementById('tipoInstrumento');
+        const tickerSelect = document.getElementById('tickernombre');
+        const descripcionInput = document.getElementById('descripcionTicker');
+        // const comisionBrokerInput = document.getElementById('comisionBroker');
+    
+        brokerSelect.addEventListener('change', function() {
+            const selectedBrokerId = this.value;
+            comitenteSelect.innerHTML = '<option value="">Cargando...</option>';
+            // comisionBrokerInput.value = ''; // Limpia el campo de comisión
+    
+            if (selectedBrokerId) {
+                // Cargar comitentes relacionados con el broker seleccionado
+                fetch(`/get_comitentes/${selectedBrokerId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        comitenteSelect.innerHTML = '<option value="">Seleccionar...</option>';
+                        data.comitentes.forEach(comitente => {
+                            const option = document.createElement('option');
+                            option.value = comitente.Id_Comitente;
+                            option.text = comitente.Titular;
+                            comitenteSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error fetching comitentes:', error);
+                        comitenteSelect.innerHTML = '<option value="">Error al cargar comitentes</option>';
+                    });
+    
+                // Cargar comisión del broker
+                // fetch(`/get_comision_broker/${selectedBrokerId}`)
+                //     .then(response => response.json())
+                //     .then(data => {
+                //         if (data.comision) {
+                //             comisionBrokerInput.value = data.comision;
+                //         } else {
+                //             comisionBrokerInput.value = '';
+                //         }
+                //     })
+                //     .catch(error => {
+                //         console.error('Error fetching broker commission:', error);
+                //         comisionBrokerInput.value = 'Error al cargar comisión';
+                //     });
+            // } else {
+            //     comitenteSelect.innerHTML = '<option value="">Seleccionar...</option>';
+            //     comisionBrokerInput.value = '';
+            }
+        });
+    
+        tipoInstrumentoSelect.addEventListener('change', function() {
+            const selectedInstrumentoId = this.value;
+            tickerSelect.innerHTML = '<option value="">Seleccionar...</option>';
+            descripcionInput.value = '';
+    
+            if (selectedInstrumentoId) {
+                fetch(`/get_tickers/${selectedInstrumentoId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        tickerSelect.innerHTML = '<option value="">Seleccionar...</option>';
+                        data.tickers.forEach(ticker => {
+                            const option = document.createElement('option');
+                            option.value = ticker.Id_Ticker;
+                            option.textContent = `${ticker.Nombre_Ticker} - ${ticker.Descripcion}`;
+                            option.setAttribute('data-descripcion', ticker.Descripcion);
+                            tickerSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error fetching tickers:', error);
+                        tickerSelect.innerHTML = '<option value="">Error al cargar tickers</option>';
+                    });
+            } else {
+                tickerSelect.innerHTML = '<option value="">Seleccionar...</option>';
+            }
+        });
+    
+        tickerSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption) {
+                const descripcion = selectedOption.getAttribute('data-descripcion');
+                descripcionInput.value = descripcion || '';
+            } else {
+                descripcionInput.value = '';
+            }
+        });
+    });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+    const brokerSelect = document.getElementById('Broker');
+    const comitenteSelect = document.getElementById('Comitente');
+    const tipoInstrumentoSelect = document.getElementById('tipoInstrumento');
+    const tickerSelect = document.getElementById('tickernombre');
+    const activoEstadoSelect = document.getElementById('activoEstado');
+    const tablaResultados = document.getElementById('tablaResultados').querySelector('tbody');
+    const form = document.querySelector('form');
+
+    function determinarClaseGanancia(valor) {
+        if (valor === 'N/A' || valor === null || valor === undefined) {
+            return '';
+        }
+        const porcentaje = parseFloat(valor);
+        if (isNaN(porcentaje)) {
+            return '';
+        }
+        return porcentaje > 0 ? 'text-success fw-bold' : 'text-danger fw-bold';
+    }
+
+    function formatearValor(valor, opciones = {}) {
+        const { decimales = 3, esMoneda = false, esPorcentaje = false, valorPredeterminado = '-' } = opciones;
+        if (valor === null || valor === undefined || valor === '' || Number.isNaN(Number(valor))) {
+            return valorPredeterminado;
+        }
+        const valorFormateado = parseFloat(valor).toFixed(decimales);
+        return esMoneda ? `$${valorFormateado}` : (esPorcentaje ? `${valorFormateado}%` : valorFormateado);
+    }
+
+    function cargarEstadosActivos() {
+        fetch('/obtener_estados_activos')
+            .then(response => response.json())
+            .then(data => {
+                activoEstadoSelect.innerHTML = '<option value="">Todos</option>';
+                data.forEach(estado => {
+                    const option = document.createElement('option');
+                    option.value = estado;
+                    option.textContent = estado;
+                    activoEstadoSelect.appendChild(option);
+                });
+            })
+            .catch(error => console.error('Error al cargar los estados:', error));
+    }
+
+    function fetchAndUpdateResults() {
+    const broker = brokerSelect.value;
+    const comitente = comitenteSelect.value;
+    const tipoInstrumento = tipoInstrumentoSelect.value;
+    const ticker = tickerSelect.value;
+    const estado = activoEstadoSelect.value;
+
+    // Preparar datos para envío
+    const formData = new FormData(form);
+
+    // Mostrar estado de carga
+    document.getElementById('loading-state').style.display = 'block';
+    document.getElementById('initial-state').style.display = 'none';
+    document.getElementById('results-container').style.display = 'none';
+    document.getElementById('no-results').style.display = 'none';
+
+    fetch('/informe_activos', { 
+        method: 'POST', 
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Datos recibidos:', data);
+            
+            // Ocultar estado de carga
+            document.getElementById('loading-state').style.display = 'none';
+            
+            // Limpiar tabla
+            tablaResultados.innerHTML = '';
+
+            if (data.data && data.data.length > 0) {
+                // Mostrar resultados
+                document.getElementById('results-container').style.display = 'block';
+                document.getElementById('no-results').style.display = 'none';
+                
+                data.data.forEach(activo => {
+                    const row = document.createElement('tr');
+                    const ventaPendiente = !activo.Fecha_Venta || activo.Fecha_Venta === 'N/A';
+                    const gananciaClass = ventaPendiente ? "text-secondary fst-italic" 
+                        : (parseFloat(activo.Ganancia) > 0 ? "text-success fw-bold" : "text-danger fw-bold");
+                    const porcentajeDolares = activo.Porcentaje_Dolares !== undefined ? activo.Porcentaje_Dolares : 'N/A';
+
+                    row.innerHTML = `
+                        <td class="text-center">${moment(activo.Fecha_Compra).format('DD/MM/YYYY HH:mm')}</td>
+                        <td class="text-center">${formatearValor(activo.Precio_Compra)}</td>
+                        <td class="text-center">${formatearValor(activo.Cantidad_Nominales_Compra)}</td>
+                        <td class="text-center">${formatearValor(activo.Total_Pesos_Compra)}</td>
+                        
+                        <td class="text-center">
+                            ${ventaPendiente ? '<span class="badge bg-warning text-dark">Pendiente</span>' : moment(activo.Fecha_Venta).format('DD/MM/YYYY HH:mm')}
+                        </td>
+                        <td class="text-center">
+                            ${ventaPendiente ? '<span class="badge bg-warning text-dark">N/D</span>' : `${formatearValor(activo.Precio_Venta)}`}
+                        </td>
+                        <td class="text-center">
+                            ${ventaPendiente ? '<span class="badge bg-warning text-dark">N/D</span>' : `${formatearValor(activo.Total_Pesos_Venta)}`}
+                        </td>
+                        <td class="text-center ${gananciaClass}">
+                            ${ventaPendiente ? '<span class="badge bg-secondary">N/C</span>' : `${formatearValor(activo.Ganancia)}`}
+                        </td>
+                        <td class="text-center ${gananciaClass}">
+                            ${ventaPendiente ? '<span class="badge bg-secondary">N/C</span>' : `${formatearValor(activo.Porcentaje_Pesos, { esPorcentaje: true })}`}
+                        </td>
+                        <td class="text-center">${formatearValor(activo.Dolar_MEP_Compra)}</td>
+                        <td class="text-center">
+                            ${ventaPendiente ? '<span class="badge bg-warning text-dark">N/D</span>' : `${formatearValor(activo.Dolar_MEP_Venta)}`}
+                        </td>
+                        <td class="text-center ${determinarClaseGanancia(porcentajeDolares)}">
+                            ${ventaPendiente 
+                                ? '<span class="badge bg-secondary">N/C</span>' 
+                                : (porcentajeDolares !== 'N/A' 
+                                    ? `${formatearValor(porcentajeDolares, { esPorcentaje: true })}` 
+                                    : '<span class="badge bg-secondary">N/A</span>'
+                                )
+                            }
+                        </td>
+                    `;
+
+                    tablaResultados.appendChild(row);
+                });
+                
+                // Actualizar resumen
+                document.getElementById('total-operaciones').textContent = data.data.length;
+                document.getElementById('ganancia-total').textContent = `${formatearValor(data.total_ganancia_pesos, { esMoneda: true })}`;
+                document.getElementById('resultados-resumen').style.display = 'block';
+                
+            } else {
+                // No hay resultados
+                document.getElementById('results-container').style.display = 'none';
+                document.getElementById('no-results').style.display = 'block';
+                document.getElementById('resultados-resumen').style.display = 'none';
+            }
+        })
+        .catch(error => {
+            console.error('Error al cargar los resultados:', error);
+            document.getElementById('loading-state').style.display = 'none';
+            tablaResultados.innerHTML = `<tr><td colspan="12" class="text-center text-danger">Error al cargar los resultados: ${error.message}</td></tr>`;
+            document.getElementById('results-container').style.display = 'block';
+            document.getElementById('no-results').style.display = 'none';
+        });
+}
+
+    // Cargar estados y eventos de cambio
+    cargarEstadosActivos();
+    [brokerSelect, comitenteSelect, tipoInstrumentoSelect, tickerSelect, activoEstadoSelect].forEach(select => {
+        select.addEventListener('change', fetchAndUpdateResults);
+    });
+
+    // Evento submit del formulario
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
+        fetchAndUpdateResults();
+    });
+});
+    </script>
+    
+</body>
+</html>

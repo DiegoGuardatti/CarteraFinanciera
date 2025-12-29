@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Avanzado - Análisis Financiero Profesional</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .metric-card {
+            transition: transform 0.2s;
+            border-left: 4px solid;
+        }
+        .metric-card:hover {
+            transform: translateY(-2px);
+        }
+        .metric-excellent { border-color: #28a745; }
+        .metric-good { border-color: #17a2b8; }
+        .metric-warning { border-color: #ffc107; }
+        .metric-danger { border-color: #dc3545; }
+        
+        .correlation-matrix {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .backtest-chart {
+            height: 300px;
+        }
+        
+        .risk-matrix {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-chart-line me-2"></i>
+                Dashboard Avanzado
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('dashboard') }}">
+                    <i class="fas fa-arrow-left"></i> Dashboard Básico
+                </a>
+                <a class="nav-link" href="{{ url_for('index') }}">
+                    <i class="fas fa-home"></i> Inicio
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Header con controles -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="h2 mb-1">Análisis Financiero Avanzado</h1>
+                        <p class="text-muted mb-0">
+                            <i class="fas fa-clock me-1"></i>
+                            Última actualización: <span id="timestamp">Cargando...</span>
+                        </p>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-primary" onclick="recargarAnalisis()">
+                            <i class="fas fa-sync-alt me-1"></i>Actualizar
+                        </button>
+                        <button class="btn btn-outline-success" onclick="exportarReporte()">
+                            <i class="fas fa-download me-1"></i>Exportar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPIs Avanzados -->
+        <div class="row mb-4" id="kpis-avanzados">
+            <div class="col-12">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <p class="mt-2">Cargando análisis avanzados...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Matriz de Correlación y Diversificación -->
+        <div class="row mb-4">
+            <!-- Matriz de Correlación -->
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-th me-2"></i>
+                            Matriz de Correlación
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="correlation-heatmap">
+                            <div class="text-center">
+                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                <p class="mt-2">Calculando correlaciones...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Análisis de Diversificación -->
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">
+                            <i class="fas fa-balance-scale me-2"></i>
+                            Diversificación de Cartera
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="diversification-analysis">
+                            <div class="text-center">
+                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                <p class="mt-2">Analizando diversificación...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Métricas Institucionales -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-university me-2"></i>
+                            Métricas Institucionales
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="institutional-metrics">
+                            <div class="text-center">
+                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                <p class="mt-2">Calculando métricas avanzadas...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Backtesting y Análisis de Sensibilidad -->
+        <div class="row mb-4">
+            <!-- Backtesting -->
+            <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-area me-2"></i>
+                            Backtesting de Estrategias
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <select class="form-select" id="estrategia-select" onchange="actualizarBacktest()">
+                                    <option value="buy_hold">Buy & Hold</option>
+                                    <option value="rebalance_monthly">Rebalanceo Mensual</option>
+                                </select>
+                            </div>
+                            <div class="col-md-8">
+                                <small class="text-muted">Simulación de estrategias de inversión</small>
+                            </div>
+                        </div>
+                        <div id="backtest-chart" class="backtest-chart">
+                            <div class="text-center">
+                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                <p class="mt-2">Ejecutando backtesting...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Análisis de Sensibilidad -->
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-thermometer-half me-2"></i>
+                            Análisis de Sensibilidad
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Activo a analizar:</label>
+                            <select class="form-select form-select-sm" id="activo-select" onchange="actualizarSensibilidad()">
+                                <option value="">Seleccionar activo...</option>
+                            </select>
+                        </div>
+                        <div id="sensitivity-analysis">
+                            <div class="text-center">
+                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                <p class="mt-2">Seleccione un activo...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Análisis Detallado por Activo -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-search me-2"></i>
+                            Análisis Detallado por Activo
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="detailed-analysis">
+                            <div class="text-center">
+                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                <p class="mt-2">Cargando análisis detallado...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- APIs Disponibles -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-code me-2"></i>
+                            APIs Avanzadas Disponibles
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <h6>APIs Métricas Institucionales:</h6>
+                                <ul class="list-unstyled small">
+                                    <li><code>GET /api/metrics/tir/{id}</code> - TIR completa</li>
+                                    <li><code>GET /api/metrics/beta/{id}</code> - Beta del activo</li>
+                                    <li><code>GET /api/metrics/alpha/{id}</code> - Alpha del activo</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4">
+                                <h6>APIs Análisis de Cartera:</h6>
+                                <ul class="list-unstyled small">
+                                    <li><code>GET /api/metrics/correlation-matrix</code> - Matriz correlación</li>
+                                    <li><code>GET /api/metrics/diversification</code> - Diversificación</li>
+                                    <li><code>GET /api/metrics/backtesting</code> - Backtesting</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4">
+                                <h6>APIs Análisis Avanzado:</h6>
+                                <ul class="list-unstyled small">
+                                    <li><code>GET /api/metrics/sensitivity/{id}</code> - Sensibilidad</li>
+                                    <li><code>GET /api/advanced/summary</code> - Resumen completo</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let correlationData = null;
+        let diversificationData = null;
+        let backtestData = null;
+
+        // Cargar análisis avanzado completo
+        async function cargarAnalisisAvanzado() {
+            try {
+                const response = await fetch('/api/advanced/summary');
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Actualizar timestamp
+                document.getElementById('timestamp').textContent = new Date().toLocaleString('es-AR');
+                
+                // Cargar datos
+                correlationData = data.correlation_matrix;
+                diversificationData = data.diversification;
+                backtestData = data.backtesting;
+                
+                // Actualizar todas las secciones
+                await Promise.all([
+                    cargarKPIsAvanzados(data),
+                    cargarMatrizCorrelacion(correlationData),
+                    cargarAnalisisDiversificacion(diversificationData),
+                    cargarMetricasInstitucionales(data.sample_analyses),
+                    cargarBacktest(backtestData),
+                    cargarAnalisisDetallado(data.sample_analyses),
+                    poblarSelectoresActivos(data.sample_analyses)
+                ]);
+                
+            } catch (error) {
+                console.error('Error cargando análisis avanzado:', error);
+                mostrarError('Error cargando análisis avanzado: ' + error.message);
+            }
+        }
+
+        // Cargar KPIs avanzados
+        async function cargarKPIsAvanzados(data) {
+            const diversificacion = data.diversification;
+            const backtest = data.backtesting;
+            
+            document.getElementById('kpis-avanzados').innerHTML = `
+                <div class="col-md-2">
+                    <div class="card metric-card metric-good">
+                        <div class="card-body text-center">
+                            <i class="fas fa-project-diagram fa-2x text-info mb-2"></i>
+                            <h6>Diversificación</h6>
+                            <h4>${diversificacion?.metricas_diversificacion?.nivel_concentracion || 'N/A'}</h4>
+                            <small>HHI: ${diversificacion?.metricas_diversificacion?.hhi_ticker?.toFixed(3) || 'N/A'}</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="card metric-card metric-excellent">
+                        <div class="card-body text-center">
+                            <i class="fas fa-chart-line fa-2x text-success mb-2"></i>
+                            <h6>Sharpe Backtest</h6>
+                            <h4>${backtest?.performance?.sharpe_ratio?.toFixed(2) || 'N/A'}</h4>
+                            <small>Estrategia: ${backtest?.estrategia || 'N/A'}</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="card metric-card metric-warning">
+                        <div class="card-body text-center">
+                            <i class="fas fa-arrow-down fa-2x text-warning mb-2"></i>
+                            <h6>Max Drawdown</h6>
+                            <h4>${backtest?.performance?.max_drawdown_porcentaje?.toFixed(1) || 'N/A'}%</h4>
+                            <small>Backtesting</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="card metric-card metric-info">
+                        <div class="card-body text-center">
+                            <i class="fas fa-percentage fa-2x text-info mb-2"></i>
+                            <h6>Win Rate</h6>
+                            <h4>${backtest?.estadisticas?.win_rate_porcentaje?.toFixed(1) || 'N/A'}%</h4>
+                            <small>Días positivos</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="card metric-card metric-success">
+                        <div class="card-body text-center">
+                            <i class="fas fa-trophy fa-2x text-warning mb-2"></i>
+                            <h6>Mejor Día</h6>
+                            <h4>${backtest?.estadisticas?.mejor_dia?.toFixed(2) || 'N/A'}%</h4>
+                            <small>Rendimiento</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="card metric-card metric-danger">
+                        <div class="card-body text-center">
+                            <i class="fas fa-exclamation-triangle fa-2x text-danger mb-2"></i>
+                            <h6>Peor Día</h6>
+                            <h4>${backtest?.estadisticas?.peor_dia?.toFixed(2) || 'N/A'}%</h4>
+                            <small>Riesgo</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Cargar matriz de correlación
+        async function cargarMatrizCorrelacion(data) {
+            if (!data || data.error) {
+                document.getElementById('correlation-heatmap').innerHTML = 
+                    '<div class="alert alert-warning">No hay datos suficientes para matriz de correlación</div>';
+                return;
+            }
+
+            const trace = {
+                z: data.matriz_correlacion,
+                x: data.tickers,
+                y: data.tickers,
+                type: 'heatmap',
+                colorscale: 'RdBu',
+                reversescale: true,
+                zmid: 0
+            };
+
+            const layout = {
+                title: `Correlación entre Activos (HHI: ${data.metricas_diversificacion.indice_hhi})`,
+                xaxis: { side: 'bottom' },
+                yaxis: { side: 'left' },
+                height: 400
+            };
+
+            Plotly.newPlot('correlation-heatmap', [trace], layout, {responsive: true});
+        }
+
+        // Cargar análisis de diversificación
+        async function cargarAnalisisDiversificacion(data) {
+            if (!data || data.error) {
+                document.getElementById('diversification-analysis').innerHTML = 
+                    '<div class="alert alert-warning">No hay datos de diversificación</div>';
+                return;
+            }
+
+            const resumen = data.resumen;
+            const metricas = data.metricas_diversificacion;
+            
+            document.getElementById('diversification-analysis').innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Resumen de Cartera</h6>
+                        <ul class="list-unstyled small">
+                            <li><strong>Valor Total:</strong> $${resumen.valor_total_cartera?.toLocaleString()}</li>
+                            <li><strong>Activos:</strong> ${resumen.num_activos_total}</li>
+                            <li><strong>Tickers Únicos:</strong> ${resumen.num_tickers_unicos}</li>
+                            <li><strong>Instrumentos:</strong> ${resumen.num_instrumentos_unicos}</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Métricas de Diversificación</h6>
+                        <ul class="list-unstyled small">
+                            <li><strong>Nivel:</strong> <span class="badge bg-${metricas.nivel_concentracion === 'Excelente' ? 'success' : 
+                                metricas.nivel_concentracion === 'Buena' ? 'info' : 
+                                metricas.nivel_concentracion === 'Moderada' ? 'warning' : 'danger'}">
+                                ${metricas.nivel_concentracion}
+                            </span></li>
+                            <li><strong>HHI Ticker:</strong> ${metricas.hhi_ticker}</li>
+                            <li><strong>N° Efectivo:</strong> ${metricas.numero_efectivo_ticker}</li>
+                            <li><strong>Correlación Promedio:</strong> ${data.metricas_diversificacion?.correlacion_promedio?.toFixed(3) || 'N/A'}</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <h6>Top Concentraciones</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <small class="text-muted">Por Ticker:</small>
+                            ${data.top_concentraciones?.top_5_tickers?.slice(0, 3).map(item => 
+                                `<div class="progress mb-1" style="height: 20px;">
+                                    <div class="progress-bar" style="width: ${item[1].porcentaje}%">${item[0]}: ${item[1].porcentaje}%</div>
+                                </div>`
+                            ).join('') || '<p>No hay datos</p>'}
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted">Por Instrumento:</small>
+                            ${data.top_concentraciones?.top_5_instrumentos?.slice(0, 3).map(item => 
+                                `<div class="progress mb-1" style="height: 20px;">
+                                    <div class="progress-bar bg-info" style="width: ${item[1].porcentaje}%">${item[0]}: ${item[1].porcentaje}%</div>
+                                </div>`
+                            ).join('') || '<p>No hay datos</p>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Cargar métricas institucionales
+        async function cargarMetricasInstitucionales(analyses) {
+            if (!analyses || analyses.length === 0) {
+                document.getElementById('institutional-metrics').innerHTML = 
+                    '<div class="alert alert-info">No hay activos para análisis</div>';
+                return;
+            }
+
+            let html = '<div class="table-responsive"><table class="table table-sm">';
+            html += '<thead><tr><th>Ticker</th><th>TIR %</th><th>Beta</th><th>Alpha %</th><th>Performance</th><th>Riesgo Mercado</th></tr></thead><tbody>';
+
+            analyses.forEach(analysis => {
+                const tir = analysis.tir?.tir_anualizada || 'N/A';
+                const beta = analysis.beta?.beta || 'N/A';
+                const alpha = analysis.alpha?.alpha_porcentaje || 'N/A';
+                const performance = analysis.alpha?.performance_rating || 'N/A';
+                const riesgo = analysis.beta?.riesgo_mercado || 'N/A';
+
+                html += `
+                    <tr>
+                        <td><strong>${analysis.ticker}</strong></td>
+                        <td>${tir}</td>
+                        <td>${beta}</td>
+                        <td class="${alpha > 0 ? 'text-success' : alpha < 0 ? 'text-danger' : 'text-muted'}">${alpha}</td>
+                        <td><span class="badge bg-${performance === 'Excelente' ? 'success' : 
+                            performance === 'Positiva' ? 'info' : 
+                            performance === 'Neutral' ? 'warning' : 'danger'}">${performance}</span></td>
+                        <td><span class="badge bg-${riesgo === 'Alto' ? 'danger' : 
+                            riesgo === 'Moderado' ? 'warning' : 'success'}">${riesgo}</span></td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table></div>';
+            document.getElementById('institutional-metrics').innerHTML = html;
+        }
+
+        // Cargar backtesting
+        async function cargarBacktest(data) {
+            if (!data || data.error) {
+                document.getElementById('backtest-chart').innerHTML = 
+                    '<div class="alert alert-warning">No hay datos de backtesting</div>';
+                return;
+            }
+
+            const trace = {
+                x: data.fechas_sample,
+                y: data.valores_portfolio,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Estrategia',
+                line: { color: '#28a745', width: 2 }
+            };
+
+            const layout = {
+                title: `${data.estrategia.replace('_', ' ').toUpperCase()} - Performance`,
+                xaxis: { title: 'Fecha' },
+                yaxis: { title: 'Valor Portfolio ($)' },
+                height: 300,
+                margin: { t: 50, b: 50, l: 50, r: 50 }
+            };
+
+            Plotly.newPlot('backtest-chart', [trace], layout, {responsive: true});
+
+            // Actualizar métricas en la tarjeta
+            document.getElementById('backtest-chart').innerHTML += `
+                <div class="mt-3">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <small class="text-muted">Retorno Total</small>
+                            <div class="h6 ${data.performance.retorno_total_porcentaje > 0 ? 'text-success' : 'text-danger'}">
+                                ${data.performance.retorno_total_porcentaje}%
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted">Sharpe Ratio</small>
+                            <div class="h6">${data.performance.sharpe_ratio}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted">Max Drawdown</small>
+                            <div class="h6 text-danger">${data.performance.max_drawdown_porcentaje}%</div>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted">Win Rate</small>
+                            <div class="h6 text-info">${data.estadisticas.win_rate_porcentaje}%</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Cargar análisis detallado
+        async function cargarAnalisisDetallado(analyses) {
+            if (!analyses || analyses.length === 0) {
+                document.getElementById('detailed-analysis').innerHTML = 
+                    '<div class="alert alert-info">No hay análisis detallado disponible</div>';
+                return;
+            }
+
+            let html = '<div class="accordion" id="detailedAccordion">';
+            
+            analyses.forEach((analysis, index) => {
+                const tir = analysis.tir;
+                const beta = analysis.beta;
+                const alpha = analysis.alpha;
+
+                html += `
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading${index}">
+                            <button class="accordion-button ${index > 0 ? 'collapsed' : ''}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${index}">
+                                <div class="w-100">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span><strong>${analysis.ticker}</strong> - Análisis Completo</span>
+                                        <div>
+                                            <span class="badge bg-primary me-2">TIR: ${tir?.tir_anualizada || 'N/A'}%</span>
+                                            <span class="badge bg-info me-2">Beta: ${beta?.beta || 'N/A'}</span>
+                                            <span class="badge bg-${alpha?.alpha_porcentaje > 0 ? 'success' : 'danger'}">Alpha: ${alpha?.alpha_porcentaje || 'N/A'}%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </button>
+                        </h2>
+                        <div id="collapse${index}" class="accordion-collapse collapse ${index === 0 ? 'show' : ''}" data-bs-parent="#detailedAccordion">
+                            <div class="accordion-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <h6>TIR (Tasa Interna de Retorno)</h6>
+                                        <ul class="list-unstyled small">
+                                            <li><strong>TIR Anualizada:</strong> ${tir?.tir_anualizada || 'N/A'}%</li>
+                                            <li><strong>Período:</strong> ${tir?.periodos_anos || 'N/A'} años</li>
+                                            <li><strong>Iteraciones:</strong> ${tir?.iteraciones || 'N/A'}</li>
+                                            <li><strong>VPN:</strong> $${tir?.valor_presente_neto || 'N/A'}</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6>Beta (Riesgo de Mercado)</h6>
+                                        <ul class="list-unstyled small">
+                                            <li><strong>Beta:</strong> ${beta?.beta || 'N/A'}</li>
+                    <li><strong>Correlación:</strong> ${beta?.correlacion || 'N/A'}</li>
+                                            <li><strong>R²:</strong> ${beta?.r_squared || 'N/A'}</li>
+                                            <li><strong>Riesgo:</strong> <span class="badge bg-${beta?.riesgo_mercado === 'Alto' ? 'danger' : 'success'}">${beta?.riesgo_mercado || 'N/A'}</span></li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6>Alpha (Performance Ajustada)</h6>
+                                        <ul class="list-unstyled small">
+                                            <li><strong>Alpha:</strong> ${alpha?.alpha_porcentaje || 'N/A'}%</li>
+                                            <li><strong>Exceso Retorno:</strong> ${alpha?.exceso_retorno || 'N/A'}%</li>
+                                            <li><strong>Performance:</strong> <span class="badge bg-${alpha?.performance_rating === 'Excelente' ? 'success' : 'info'}">${alpha?.performance_rating || 'N/A'}</span></li>
+                                            <li><strong>Ganancia:</strong> ${alpha?.ganancia_porcentaje || 'N/A'}%</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            document.getElementById('detailed-analysis').innerHTML = html;
+        }
+
+        // Poblar selectores de activos
+        function poblarSelectoresActivos(analyses) {
+            const select = document.getElementById('activo-select');
+            select.innerHTML = '<option value="">Seleccionar activo...</option>';
+            
+            analyses.forEach(analysis => {
+                const option = document.createElement('option');
+                option.value = analysis.activo_id;
+                option.textContent = analysis.ticker;
+                select.appendChild(option);
+            });
+        }
+
+        // Funciones de actualización
+        async function actualizarBacktest() {
+            const estrategia = document.getElementById('estrategia-select').value;
+            try {
+                const response = await fetch(`/api/metrics/backtesting?estrategia=${estrategia}`);
+                const data = await response.json();
+                if (!data.error) {
+                    backtestData = data;
+                    cargarBacktest(data);
+                }
+            } catch (error) {
+                console.error('Error actualizando backtest:', error);
+            }
+        }
+
+        async function actualizarSensibilidad() {
+            const activoId = document.getElementById('activo-select').value;
+            if (!activoId) return;
+
+            try {
+                const response = await fetch(`/api/metrics/sensitivity/${activoId}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                let html = '<h6>Análisis de Sensibilidad</h6>';
+                html += `<p class="small"><strong>Resultado Base:</strong> $${data.resultado_base}</p>`;
+                
+                // Parámetros más sensibles
+                if (data.parametros_criticos) {
+                    html += '<div class="mt-2">';
+                    html += '<small class="text-muted">Parámetros Críticos:</small>';
+                    data.parametros_criticos.forEach(param => {
+                        html += `<div class="badge bg-warning me-1">${param[0]}: ${param[1]}</div>`;
+                    });
+                    html += '</div>';
+                }
+                
+                document.getElementById('sensitivity-analysis').innerHTML = html;
+                
+            } catch (error) {
+                console.error('Error actualizando sensibilidad:', error);
+                document.getElementById('sensitivity-analysis').innerHTML = 
+                    '<div class="alert alert-danger">Error cargando sensibilidad</div>';
+            }
+        }
+
+        // Función para recargar todo
+        async function recargarAnalisis() {
+            // Mostrar indicadores de carga
+            document.querySelectorAll('#correlation-heatmap, #diversification-analysis, #institutional-metrics, #backtest-chart, #detailed-analysis').forEach(el => {
+                el.innerHTML = `
+                    <div class="text-center">
+                        <div class="spinner-border spinner-border-sm" role="status"></div>
+                        <p class="mt-2">Actualizando...</p>
+                    </div>
+                `;
+            });
+            
+            await cargarAnalisisAvanzado();
+        }
+
+        // Función para exportar reporte
+        function exportarReporte() {
+            alert('Función de exportación próximamente disponible...\n\nSe incluirá:\n- PDF con métricas completas\n- Excel con datos detallados\n- CSV para análisis externo');
+        }
+
+        // Función para mostrar errores
+        function mostrarError(mensaje) {
+            document.getElementById('kpis-avanzados').innerHTML = `
+                <div class="col-12">
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        ${mensaje}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Inicializar dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarAnalisisAvanzado();
+            
+            // Actualizar cada 10 minutos
+            setInterval(cargarAnalisisAvanzado, 600000);
+        });
+    </script>
+</body>
+</html>

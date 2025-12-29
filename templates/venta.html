@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulario de Venta - Cartera Financiera</title>
+    
+    <!-- Bootstrap CSS desde CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Estilos personalizados -->
+    <style>
+        .bg-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        }
+        
+        .card {
+            border: none;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+        
+        .shadow-lg {
+            box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175) !important;
+        }
+        
+        .shadow-sm {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+        
+        .table-hover tbody tr:hover {
+            background-color: rgba(102, 126, 234, 0.1);
+        }
+        
+        .breadcrumb {
+            background-color: transparent;
+            padding: 0;
+        }
+        
+        .breadcrumb-item + .breadcrumb-item::before {
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <!-- Breadcrumbs de navegación -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('index') }}" class="text-decoration-none">
+                    <i class="fas fa-home me-1" aria-hidden="true"></i>Inicio
+                </a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">
+                Registro de Venta
+            </li>
+        </ol>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Botones de acción rápida -->
+        <div class="row mb-4">
+            <div class="col-12 d-flex justify-content-end gap-2">
+                <a href="{{ url_for('importar_ventas') }}" class="btn btn-success">
+                    <i class="fas fa-file-import me-1"></i> Importar desde Archivo
+                </a>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-info text-white">
+                    <i class="fas fa-chart-line me-1"></i> Dashboard
+                </a>
+                <a href="{{ url_for('compra') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-plus me-1"></i> Nueva Compra
+                </a>
+            </div>
+        </div>
+        
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-gradient text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="h4 mb-1">
+                            <i class="fas fa-chart-line me-2" aria-hidden="true"></i>
+                            Registro de Venta
+                        </h1>
+                        <p class="mb-0 opacity-75">Gestione las ventas de su cartera de activos</p>
+                    </div>
+                    <div class="text-end">
+                        <small class="opacity-75">
+                            <i class="fas fa-clock me-1" aria-hidden="true"></i>
+                            <span id="current-time"></span>
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body">
+                {% include 'formulario_venta.html' %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts mejorados -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    <script src="{{ url_for('static', filename='funciones.js') }}"></script>
+
+    <script>
+        // JavaScript básico para actualización de hora
+        document.addEventListener("DOMContentLoaded", function () {
+            function updateCurrentTime() {
+                const timeElement = document.getElementById("current-time");
+                if (timeElement) {
+                    timeElement.textContent = new Date().toLocaleString("es-AR");
+                }
+            }
+            updateCurrentTime();
+            setInterval(updateCurrentTime, 1000);
+        });
+    </script>
+</body>
+</html>

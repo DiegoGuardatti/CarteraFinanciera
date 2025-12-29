@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Ejecutivo - Cartera Financiera</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-chart-line me-2"></i>
+                Dashboard Ejecutivo
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('index') }}">
+                    <i class="fas fa-home"></i> Inicio
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Header con título y timestamp -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="h2 mb-1">Resumen de Cartera</h1>
+                        <p class="text-muted mb-0">
+                            <i class="fas fa-clock me-1"></i>
+                            Última actualización: <span id="timestamp">Cargando...</span>
+                        </p>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-primary" onclick="recargarDashboard()">
+                            <i class="fas fa-sync-alt me-1"></i>Actualizar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPIs principales -->
+        <div class="row mb-4" id="kpis-row">
+            <div class="col-12">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <p class="mt-2">Cargando KPIs...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficos principales -->
+        <div class="row mb-4">
+            <!-- Performance Chart -->
+            <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-line me-2"></i>
+                            Resumen de Performance
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="portfolio-summary">
+                            <div class="text-center">
+                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                <p class="mt-2">Cargando datos de portfolio...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Top Performers -->
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-trophy me-2"></i>
+                            Top Performers
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="top-performers">
+                            <div class="text-center">
+                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                <p class="mt-2">Cargando performers...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Performers y Performance por Ticker -->
+        <div class="row mb-4">
+            <!-- Bottom Performers -->
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Bottom Performers
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="bottom-performers">
+                            <div class="text-center">
+                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                <p class="mt-2">Cargando performers...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance por Ticker -->
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            Performance por Ticker
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="ticker-performance">
+                            <div class="text-center">
+                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                <p class="mt-2">Cargando tickers...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Métricas de Riesgo -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-shield-alt me-2"></i>
+                            Métricas de Riesgo
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="risk-metrics">
+                            <div class="text-center">
+                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                <p class="mt-2">Calculando métricas de riesgo...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- APIs Disponibles -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-code me-2"></i>
+                            APIs Disponibles para Testing
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>APIs de Métricas:</h6>
+                                <ul class="list-unstyled">
+                                    <li><code>GET /api/metrics/portfolio</code> - ROI de cartera completa</li>
+                                    <li><code>GET /api/metrics/roi/{id}</code> - ROI de activo específico</li>
+                                    <li><code>GET /api/metrics/sharpe/{id}</code> - Sharpe Ratio</li>
+                                    <li><code>GET /api/metrics/var/{id}</code> - Value at Risk</li>
+                                    <li><code>GET /api/metrics/max-drawdown/{id}</code> - Maximum Drawdown</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>APIs de Análisis:</h6>
+                                <ul class="list-unstyled">
+                                    <li><code>GET /api/metrics/top-performers</code> - Mejores performers</li>
+                                    <li><code>GET /api/metrics/bottom-performers</code> - Peores performers</li>
+                                    <li><code>GET /api/metrics/performance-tickers</code> - Performance por ticker</li>
+                                    <li><code>GET /api/dashboard/summary</code> - Resumen ejecutivo completo</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Función para formatear números como moneda
+        function formatearMoneda(valor) {
+            return new Intl.NumberFormat('es-AR', {
+                style: 'currency',
+                currency: 'ARS',
+                minimumFractionDigits: 2
+            }).format(valor);
+        }
+
+        // Función para formatear porcentajes
+        function formatearPorcentaje(valor) {
+            return new Intl.NumberFormat('es-AR', {
+                style: 'percent',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(valor / 100);
+        }
+
+        // Función para obtener clase CSS según el valor
+        function getClaseValor(valor, esPorcentaje = false) {
+            if (esPorcentaje) {
+                return valor > 0 ? 'text-success' : valor < 0 ? 'text-danger' : 'text-muted';
+            }
+            return valor >= 0 ? 'text-success' : 'text-danger';
+        }
+
+        // Cargar KPIs principales
+        async function cargarKPIs() {
+            try {
+                const response = await fetch('/api/dashboard/summary');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('La respuesta no es JSON válido');
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                const cartera = data.cartera || {};
+                const kpis = data.metricas_riesgo || {};
+                
+                // Valores por defecto si no hay datos
+                cartera.roi_portfolio = cartera.roi_portfolio || 0;
+                cartera.ganancia_total = cartera.ganancia_total || 0;
+                cartera.valor_cartera = cartera.valor_cartera || 0;
+                cartera.total_activos = cartera.total_activos || 0;
+                kpis.sharpe_promedio = kpis.sharpe_promedio || 0;
+                kpis.var_promedio = kpis.var_promedio || 0;
+                
+                // Actualizar timestamp
+                document.getElementById('timestamp').textContent = new Date().toLocaleString('es-AR');
+                
+                // Crear HTML para KPIs
+                document.getElementById('kpis-row').innerHTML = `
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white shadow">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title mb-1">ROI Cartera</h6>
+                                        <h2 class="mb-0">${cartera.roi_portfolio}%</h2>
+                                        <small class="opacity-75">Ganancia: ${formatearMoneda(cartera.ganancia_total)}</small>
+                                    </div>
+                                    <div>
+                                        <i class="fas fa-chart-line fa-2x opacity-75"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white shadow">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title mb-1">Valor Cartera</h6>
+                                        <h2 class="mb-0">${formatearMoneda(cartera.valor_cartera)}</h2>
+                                        <small class="opacity-75">${cartera.total_activos} activos</small>
+                                    </div>
+                                    <div>
+                                        <i class="fas fa-wallet fa-2x opacity-75"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white shadow">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title mb-1">Sharpe Ratio</h6>
+                                        <h2 class="mb-0">${kpis.sharpe_promedio}</h2>
+                                        <small class="opacity-75">Risk-adjusted return</small>
+                                    </div>
+                                    <div>
+                                        <i class="fas fa-balance-scale fa-2x opacity-75"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-dark shadow">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title mb-1">VaR Promedio</h6>
+                                        <h2 class="mb-0">${kpis.var_promedio}%</h2>
+                                        <small class="opacity-75">Pérdida máxima esperada</small>
+                                    </div>
+                                    <div>
+                                        <i class="fas fa-exclamation-triangle fa-2x opacity-75"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error cargando KPIs:', error);
+                document.getElementById('kpis-row').innerHTML = `
+                    <div class="col-12">
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            Error cargando KPIs: ${error.message}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Cargar resumen de portfolio
+        async function cargarPortfolioSummary() {
+            try {
+                const response = await fetch('/api/metrics/portfolio');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('La respuesta no es JSON válido');
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Valores por defecto para evitar errores de undefined
+                data.inversion_total = data.inversion_total || 0;
+                data.valor_cartera = data.valor_cartera || 0;
+                data.ganancia_total = data.ganancia_total || 0;
+                data.roi_promedio = data.roi_promedio || 0;
+                data.total_activos = data.total_activos || 0;
+                data.activos_activos = data.activos_activos || 0;
+                data.activos_vendidos = data.activos_vendidos || 0;
+                
+                document.getElementById('portfolio-summary').innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <h6>Inversión Total</h6>
+                                <p class="h4 ${getClaseValor(-data.inversion_total)}">${formatearMoneda(data.inversion_total)}</p>
+                            </div>
+                            <div class="mb-3">
+                                <h6>Valor Actual</h6>
+                                <p class="h4 ${getClaseValor(data.valor_cartera)}">${formatearMoneda(data.valor_cartera)}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <h6>Ganancia Total</h6>
+                                <p class="h4 ${getClaseValor(data.ganancia_total)}">${formatearMoneda(data.ganancia_total)}</p>
+                            </div>
+                            <div class="mb-3">
+                                <h6>ROI Promedio</h6>
+                                <p class="h4 ${getClaseValor(data.roi_promedio, true)}">${data.roi_promedio}%</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <span class="badge bg-primary fs-6">${data.total_activos} Total</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <span class="badge bg-success fs-6">${data.activos_activos} Activos</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <span class="badge bg-warning fs-6">${data.activos_vendidos} Vendidos</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error cargando portfolio summary:', error);
+                document.getElementById('portfolio-summary').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Cargar top performers
+        async function cargarTopPerformers() {
+            try {
+                const response = await fetch('/api/metrics/top-performers?per_page=5');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('La respuesta no es JSON válido');
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                if (!data.data || !Array.isArray(data.data)) {
+                    throw new Error('Datos inválidos recibidos');
+                }
+                
+                let html = '<ul class="list-group list-group-flush">';
+                
+                data.data.forEach((performer, index) => {
+                    const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
+                    html += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="me-2">${medal}</span>
+                                <strong>${performer.ticker}</strong>
+                                <br><small class="text-muted">${performer.dias_posicion} días</small>
+                            </div>
+                            <span class="badge bg-success rounded-pill">${performer.roi}%</span>
+                        </li>
+                    `;
+                });
+                
+                html += '</ul>';
+                document.getElementById('top-performers').innerHTML = html;
+                
+            } catch (error) {
+                console.error('Error cargando top performers:', error);
+                document.getElementById('top-performers').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Cargar bottom performers
+        async function cargarBottomPerformers() {
+            try {
+                const response = await fetch('/api/metrics/bottom-performers?limit=5');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('La respuesta no es JSON válido');
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                if (!Array.isArray(data)) {
+                    throw new Error('Datos inválidos recibidos');
+                }
+                
+                let html = '<ul class="list-group list-group-flush">';
+                
+                data.forEach((performer, index) => {
+                    const icon = index === 0 ? '🔴' : index === 1 ? '🟠' : index === 2 ? '🟡' : '⚠️';
+                    html += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="me-2">${icon}</span>
+                                <strong>${performer.ticker}</strong>
+                                <br><small class="text-muted">${performer.dias_posicion} días</small>
+                            </div>
+                            <span class="badge bg-danger rounded-pill">${performer.roi}%</span>
+                        </li>
+                    `;
+                });
+                
+                html += '</ul>';
+                document.getElementById('bottom-performers').innerHTML = html;
+                
+            } catch (error) {
+                console.error('Error cargando bottom performers:', error);
+                document.getElementById('bottom-performers').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Cargar performance por ticker
+        async function cargarTickerPerformance() {
+            try {
+                const response = await fetch('/api/metrics/performance-tickers');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('La respuesta no es JSON válido');
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                if (!Array.isArray(data)) {
+                    throw new Error('Datos inválidos recibidos');
+                }
+                
+                let html = '<div class="table-responsive"><table class="table table-sm">';
+                html += '<thead><tr><th>Ticker</th><th>ROI</th><th>Valor</th><th>Activos</th></tr></thead><tbody>';
+                
+                data.slice(0, 5).forEach(ticker => {
+                    html += `
+                        <tr>
+                            <td><strong>${ticker.ticker}</strong><br><small class="text-muted">${ticker.instrumento}</small></td>
+                            <td><span class="${getClaseValor(ticker.roi_ticker, true)}">${ticker.roi_ticker}%</span></td>
+                            <td>${formatearMoneda(ticker.valor_actual)}</td>
+                            <td>${ticker.total_activos}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table></div>';
+                document.getElementById('ticker-performance').innerHTML = html;
+                
+            } catch (error) {
+                console.error('Error cargando ticker performance:', error);
+                document.getElementById('ticker-performance').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Cargar métricas de riesgo
+        async function cargarRiskMetrics() {
+            try {
+                const response = await fetch('/api/dashboard/summary');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('La respuesta no es JSON válido');
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                const riesgo = data.metricas_riesgo || {};
+                
+                // Valores por defecto para evitar errores de undefined
+                riesgo.var_promedio = riesgo.var_promedio || 0;
+                riesgo.sharpe_promedio = riesgo.sharpe_promedio || 0;
+                riesgo.max_drawdown_promedio = riesgo.max_drawdown_promedio || 0;
+                
+                document.getElementById('risk-metrics').innerHTML = `
+                    <div class="row">
+                        <div class="col-md-3 text-center">
+                            <div class="mb-3">
+                                <h6>VaR Promedio</h6>
+                                <p class="h4 ${getClaseValor(-riesgo.var_promedio, true)}">${riesgo.var_promedio}%</p>
+                                <small class="text-muted">Pérdida máxima esperada (95% confianza)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="mb-3">
+                                <h6>Sharpe Ratio</h6>
+                                <p class="h4 ${getClaseValor(riesgo.sharpe_promedio)}">${riesgo.sharpe_promedio}</p>
+                                <small class="text-muted">Retorno ajustado por riesgo</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="mb-3">
+                                <h6>Max Drawdown</h6>
+                                <p class="h4 ${getClaseValor(-riesgo.max_drawdown_promedio, true)}">${riesgo.max_drawdown_promedio}%</p>
+                                <small class="text-muted">Mayor pérdida histórica</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="mb-3">
+                                <h6>Risk Rating</h6>
+                                <p class="h4">
+                                    ${riesgo.sharpe_promedio > 1 ? '🟢 Bajo' : 
+                                      riesgo.sharpe_promedio > 0 ? '🟡 Medio' : '🔴 Alto'}
+                                </p>
+                                <small class="text-muted">Evaluación general de riesgo</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error cargando risk metrics:', error);
+                document.getElementById('risk-metrics').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Función para recargar todo el dashboard
+        async function recargarDashboard() {
+            // Mostrar indicadores de carga
+            document.querySelectorAll('#portfolio-summary, #top-performers, #bottom-performers, #ticker-performance, #risk-metrics').forEach(el => {
+                el.innerHTML = `
+                    <div class="text-center">
+                        <div class="spinner-border spinner-border-sm" role="status"></div>
+                        <p class="mt-2">Cargando...</p>
+                    </div>
+                `;
+            });
+            
+            // Recargar todos los componentes
+            await Promise.all([
+                cargarKPIs(),
+                cargarPortfolioSummary(),
+                cargarTopPerformers(),
+                cargarBottomPerformers(),
+                cargarTickerPerformance(),
+                cargarRiskMetrics()
+            ]);
+        }
+
+        // Cargar dashboard al iniciar
+        document.addEventListener('DOMContentLoaded', function() {
+            recargarDashboard();
+            
+            // Actualizar cada 5 minutos
+            setInterval(recargarDashboard, 300000);
+        });
+    </script>
+</body>
+</html>

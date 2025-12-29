@@ -1,0 +1,513 @@
+openapi: 3.0.3
+info:
+  title: Cartera Financiera API
+  description: |
+    API RESTful para gestión de cartera financiera con métricas avanzadas y análisis de performance.
+
+    ## Características principales:
+    - Gestión completa de brokers, comitentes y activos
+    - Cálculo de métricas financieras (ROI, Sharpe, VaR, TIR, Beta, Alpha)
+    - Dashboard ejecutivo con resumen de cartera
+    - Análisis de diversificación y correlación entre activos
+    - Backtesting de estrategias de inversión
+
+    ## Autenticación
+    La API no requiere autenticación para uso local.
+
+    ## Formatos de respuesta
+    Todas las respuestas son en formato JSON.
+  version: 1.0.0
+  contact:
+    name: Cartera Financiera
+    email: soporte@carterafinanciera.com
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:5000
+    description: Servidor de desarrollo
+
+paths:
+  # APIs de Dashboard y Resumen
+  /api/dashboard/summary:
+    get:
+      tags: [Dashboard]
+      summary: Resumen ejecutivo del dashboard
+      description: Obtiene métricas principales y resumen de la cartera completa
+      responses:
+        "200":
+          description: Resumen ejecutivo exitoso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_activos:
+                    type: number
+                    description: Total de activos en cartera
+                  roi_promedio:
+                    type: number
+                    description: ROI promedio de la cartera
+                  valor_total_cartera:
+                    type: number
+                    description: Valor total de la cartera en pesos
+                  activos_vendidos:
+                    type: number
+                    description: Cantidad de activos vendidos
+                  activos_en_cartera:
+                    type: number
+                    description: Cantidad de activos actuales
+        "500":
+          description: Error interno del servidor
+
+  /api/advanced/summary:
+    get:
+      tags: [Métricas Avanzadas]
+      summary: Resumen de métricas avanzadas
+      description: Obtiene análisis avanzado incluyendo matriz de correlación y diversificación
+      responses:
+        "200":
+          description: Métricas avanzadas exitosas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  correlation_matrix:
+                    type: object
+                    description: Matriz de correlación entre activos
+                  diversification:
+                    type: object
+                    description: Análisis de diversificación
+                  sample_analyses:
+                    type: array
+                    description: Análisis de muestra de activos
+        "500":
+          description: Error interno del servidor
+
+  # APIs de ROI y Métricas Básicas
+  /api/metrics/portfolio:
+    get:
+      tags: [Métricas de Cartera]
+      summary: ROI de la cartera completa
+      description: Calcula el ROI total de toda la cartera de inversiones
+      responses:
+        "200":
+          description: ROI de cartera calculado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  roi_total:
+                    type: number
+                    description: ROI total de la cartera
+                  ganancia_total:
+                    type: number
+                    description: Ganancia total en pesos
+                  roi_mensual:
+                    type: number
+                    description: ROI mensual promedio
+        "500":
+          description: Error en el cálculo
+
+  /api/metrics/roi/{activo_id}:
+    get:
+      tags: [Métricas de Activo]
+      summary: ROI de un activo específico
+      description: Calcula el ROI para un activo particular identificado por su ID
+      parameters:
+        - name: activo_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID del activo
+      responses:
+        "200":
+          description: ROI calculado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  activo_id:
+                    type: integer
+                  roi:
+                    type: number
+                  ganancia_pesos:
+                    type: number
+                  porcentaje_ganancia:
+                    type: number
+        "404":
+          description: Activo no encontrado
+        "500":
+          description: Error en el cálculo
+
+  /api/metrics/sharpe/{activo_id}:
+    get:
+      tags: [Métricas Avanzadas]
+      summary: Sharpe Ratio de un activo
+      description: Calcula el Sharpe Ratio ajustado por riesgo de un activo
+      parameters:
+        - name: activo_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID del activo
+      responses:
+        "200":
+          description: Sharpe Ratio calculado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  activo_id:
+                    type: integer
+                  sharpe_ratio:
+                    type: number
+                  riesgo:
+                    type: number
+                  retorno:
+                    type: number
+        "404":
+          description: Activo no encontrado
+
+  /api/metrics/var/{activo_id}:
+    get:
+      tags: [Métricas de Riesgo]
+      summary: Value at Risk (VaR)
+      description: Calcula el VaR para un nivel de confianza especificado
+      parameters:
+        - name: activo_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID del activo
+        - name: confianza
+          in: query
+          schema:
+            type: number
+            minimum: 0.01
+            maximum: 0.99
+            default: 0.95
+          description: Nivel de confianza (0.95 = 95%)
+      responses:
+        "200":
+          description: VaR calculado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  activo_id:
+                    type: integer
+                  var:
+                    type: number
+                  confianza:
+                    type: number
+                  interpretacion:
+                    type: string
+
+  # APIs de Performance
+  /api/metrics/top-performers:
+    get:
+      tags: [Performance]
+      summary: Mejores performers de la cartera
+      description: Obtiene los activos con mejor performance
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 5
+            minimum: 1
+            maximum: 20
+          description: Número máximo de resultados
+      responses:
+        "200":
+          description: Top performers obtenidos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    activo_id:
+                      type: integer
+                    ticker:
+                      type: string
+                    performance:
+                      type: number
+                    roi:
+                      type: number
+
+  /api/metrics/bottom-performers:
+    get:
+      tags: [Performance]
+      summary: Peores performers de la cartera
+      description: Obtiene los activos con peor performance
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 5
+            minimum: 1
+            maximum: 20
+          description: Número máximo de resultados
+      responses:
+        "200":
+          description: Bottom performers obtenidos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    activo_id:
+                      type: integer
+                    ticker:
+                      type: string
+                    performance:
+                      type: number
+                    roi:
+                      type: number
+
+  /api/metrics/tir/{activo_id}:
+    get:
+      tags: [Métricas Avanzadas]
+      summary: TIR (Tasa Interna de Retorno)
+      description: Calcula la TIR completa usando método Newton-Raphson
+      parameters:
+        - name: activo_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID del activo
+      responses:
+        "200":
+          description: TIR calculada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  activo_id:
+                    type: integer
+                  tir:
+                    type: number
+                  metodo:
+                    type: string
+                  convergencia:
+                    type: boolean
+        "404":
+          description: Activo no encontrado
+
+  /api/metrics/beta/{activo_id}:
+    get:
+      tags: [Métricas de Riesgo]
+      summary: Beta de un activo
+      description: Calcula el Beta como correlación con el mercado
+      parameters:
+        - name: activo_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID del activo
+      responses:
+        "200":
+          description: Beta calculado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  activo_id:
+                    type: integer
+                  beta:
+                    type: number
+                  interpretacion:
+                    type: string
+                    description: Interpretación del beta (>1 más volátil, <1 menos volátil)
+
+  # APIs de Reportes Avanzados
+  /api/reports/activos-csv:
+    get:
+      tags: [Reportes]
+      summary: Exportar activos a CSV
+      description: Genera y descarga un reporte CSV con el detalle de todos los activos
+      parameters:
+        - name: Id_Broker
+          in: query
+          schema:
+            type: integer
+          description: Filtrar por broker ID
+        - name: Id_Comitente
+          in: query
+          schema:
+            type: integer
+          description: Filtrar por comitente ID
+        - name: Id_Ticker
+          in: query
+          schema:
+            type: integer
+          description: Filtrar por ticker ID
+        - name: Activo_Estado
+          in: query
+          schema:
+            type: string
+          description: Filtrar por estado del activo
+      responses:
+        200:
+          description: Archivo CSV generado exitosamente
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        500:
+          description: Error generando el reporte
+
+  /api/reports/resumen-csv:
+    get:
+      tags: [Reportes]
+      summary: Exportar resumen de cartera a CSV
+      description: Genera y descarga un reporte CSV con el resumen agrupado por ticker
+      responses:
+        200:
+          description: Archivo CSV generado exitosamente
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        500:
+          description: Error generando el reporte
+
+  /api/reports/activos-excel:
+    get:
+      tags: [Reportes]
+      summary: Exportar activos a Excel
+      description: Genera un reporte Excel profesional con múltiples hojas incluyendo análisis y gráficos
+      parameters:
+        - name: Id_Broker
+          in: query
+          schema:
+            type: integer
+          description: Filtrar por broker ID
+        - name: Id_Comitente
+          in: query
+          schema:
+            type: integer
+          description: Filtrar por comitente ID
+        - name: Id_Ticker
+          in: query
+          schema:
+            type: integer
+          description: Filtrar por ticker ID
+        - name: Activo_Estado
+          in: query
+          schema:
+            type: string
+          description: Filtrar por estado del activo
+      responses:
+        200:
+          description: Archivo Excel generado exitosamente
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+        500:
+          description: Error generando el reporte
+
+  /api/reports/ejecutivo-pdf:
+    get:
+      tags: [Reportes]
+      summary: Exportar reporte ejecutivo a PDF
+      description: Genera un reporte ejecutivo profesional en PDF con análisis completo de la cartera
+      responses:
+        200:
+          description: Archivo PDF generado exitosamente
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        500:
+          description: Error generando el reporte
+
+  /api/reports/detalle-pdf:
+    get:
+      tags: [Reportes]
+      summary: Exportar reporte detallado a PDF
+      description: Genera un reporte detallado con listado completo de activos filtrados
+      parameters:
+        - name: Id_Broker
+          in: query
+          schema:
+            type: integer
+          description: Filtrar por broker ID
+        - name: Id_Comitente
+          in: query
+          schema:
+            type: integer
+          description: Filtrar por comitente ID
+        - name: Id_Ticker
+          in: query
+          schema:
+            type: integer
+          description: Filtrar por ticker ID
+        - name: Activo_Estado
+          in: query
+          schema:
+            type: string
+          description: Filtrar por estado del activo
+      responses:
+        200:
+          description: Archivo PDF generado exitosamente
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        500:
+          description: Error generando el reporte
+
+  /descarga_reportes:
+    get:
+      tags: [Reportes]
+      summary: Interfaz para descarga de reportes
+      description: Página web para seleccionar y descargar diferentes tipos de reportes
+      responses:
+        200:
+          description: Página de reportes cargada exitosamente
+
+tags:
+  - name: Dashboard
+    description: APIs de resumen ejecutivo y dashboard
+  - name: Métricas de Cartera
+    description: Métricas de la cartera completa
+  - name: Métricas de Activo
+    description: Métricas específicas de activos individuales
+  - name: Métricas de Riesgo
+    description: Métricas de riesgo y volatilidad
+  - name: Métricas Avanzadas
+    description: Métricas financieras avanzadas (TIR, Alpha, etc.)
+  - name: Performance
+    description: Análisis de performance y ranking de activos
+  - name: Reportes
+    description: APIs para generación y descarga de reportes avanzados (CSV, Excel, PDF)
+
+components:
+  securitySchemes: {}
+
+security: []
