@@ -11,14 +11,14 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">
                 <i class="fas fa-chart-line me-2"></i>Cartera Financiera
             </a>
             <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="{{ url_for('index') }}">
+                <a class="nav-link" href="{{ url_for('main.index') }}">
                     <i class="fas fa-home me-1"></i>Inicio
                 </a>
-                <a class="nav-link" href="{{ url_for('dashboard') }}">
+                <a class="nav-link" href="{{ url_for('main.dashboard') }}">
                     <i class="fas fa-chart-bar me-1"></i>Dashboard
                 </a>
                 <a class="nav-link" href="/apidocs">

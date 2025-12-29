@@ -2,7 +2,7 @@
 <nav aria-label="breadcrumb" class="mb-3">
   <ol class="breadcrumb">
     <li class="breadcrumb-item">
-      <a href="{{ url_for('index') }}" class="text-decoration-none">
+      <a href="{{ url_for('main.index') }}" class="text-decoration-none">
         <i class="fas fa-home me-1" aria-hidden="true"></i>Inicio
       </a>
     </li>
@@ -36,7 +36,7 @@
 
   <div class="card-body">
     <form
-      action="{{ url_for('registrar_compra') }}"
+      action="#"
       method="POST"
       id="compraForm"
       novalidate
@@ -390,7 +390,7 @@
       <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
         <div class="order-2 order-md-1">
           <a
-            href="{{ url_for('index') }}"
+            href="{{ url_for('main.index') }}"
             class="btn btn-outline-secondary btn-lg px-4"
             role="button"
             aria-label="Volver al inicio"

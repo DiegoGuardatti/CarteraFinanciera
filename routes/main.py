@@ -3,7 +3,8 @@ Rutas principales de la aplicación
 """
 
 from flask import Blueprint, render_template
-from modelo import Broker, InstrumentoFinanciero, db
+from modelo import Broker, InstrumentoFinanciero
+from extensions import db
 
 # Crear blueprint
 main_bp = Blueprint('main', __name__)
@@ -79,3 +80,4 @@ def descarga_reportes():
         current_app.logger.error(f"Error cargando página de reportes: {str(e)}")
         from flask import jsonify
         return jsonify({'error': str(e)}), 500
+

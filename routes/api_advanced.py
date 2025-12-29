@@ -12,7 +12,7 @@ from metricas_avanzadas import (
     calcular_metricas_esg,
     portfolio_var_cartera
 )
-from utils.cache_config import cache_result
+from utils.cache_config import cache_with_params as cache_result
 from datetime import datetime
 import logging
 
