@@ -1,6 +1,6 @@
 // ========================================
 // CARTERA FINANCIERA - JAVASCRIPT MODERNO
-// Funciones mejoradas con UX avanzada
+// Funciones mejoradas con UX avanzada y PWA
 // ========================================
 
 // Configuración global
@@ -9,6 +9,9 @@ const CONFIG = {
     LOADING_DELAY: 300, // ms para mostrar indicador de carga
     TIMEOUT_REQUEST: 30000, // 30 segundos
     TOAST_DURATION: 5000, // 5 segundos
+    THEME_KEY: 'cartera-theme',
+    SIDEBAR_KEY: 'cartera-sidebar-collapsed',
+    PWA_ENABLED: 'serviceWorker' in navigator
 };
 
 // Clase para manejo de notificaciones toast
@@ -318,6 +321,9 @@ const loadingManager = new LoadingManager();
 const formValidator = new FormValidator();
 const apiManager = new APIManager();
 
+// Instancias de UX mejoradas
+let pwaManager, themeManager, sidebarManager, globalSearch;
+
 // ========================================
 // FUNCIONES ESPECÍFICAS DE LA APLICACIÓN
 // ========================================
@@ -597,11 +603,387 @@ function improveAccessibility() {
 }
 
 // ========================================
+// PWA Y SERVICE WORKER
+// ========================================
+
+// Clase para manejar PWA
+class PWAManager {
+    constructor() {
+        this.swRegistration = null;
+        this.isOnline = navigator.onLine;
+        this.updateAvailable = false;
+    }
+
+    async init() {
+        if (!CONFIG.PWA_ENABLED) {
+            console.log('⚠️ PWA no soportado en este navegador');
+            return;
+        }
+
+        try {
+            // Registrar Service Worker
+            this.swRegistration = await navigator.serviceWorker.register('/static/sw.js');
+            console.log('✅ Service Worker registrado:', this.swRegistration);
+
+            // Escuchar actualizaciones
+            this.swRegistration.addEventListener('updatefound', () => {
+                const newWorker = this.swRegistration.installing;
+                newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        this.updateAvailable = true;
+                        this.showUpdateToast();
+                    }
+                });
+            });
+
+            // Escuchar cambios de conectividad
+            window.addEventListener('online', () => this.handleOnline());
+            window.addEventListener('offline', () => this.handleOffline());
+
+            // Verificar si está instalado
+            this.checkInstallPrompt();
+
+        } catch (error) {
+            console.error('❌ Error registrando Service Worker:', error);
+        }
+    }
+
+    showUpdateToast() {
+        toastManager.show(
+            'Nueva versión disponible. <button class="btn btn-sm btn-outline-primary ms-2" onclick="window.location.reload()">Actualizar</button>',
+            'info',
+            10000
+        );
+    }
+
+    handleOnline() {
+        this.isOnline = true;
+        toastManager.show('Conexión restaurada', 'success', 2000);
+        document.body.classList.remove('offline');
+    }
+
+    handleOffline() {
+        this.isOnline = false;
+        toastManager.show('Sin conexión. Trabajando offline.', 'warning', 3000);
+        document.body.classList.add('offline');
+    }
+
+    async checkInstallPrompt() {
+        // Detectar si la app puede ser instalada
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            this.deferredPrompt = e;
+            this.showInstallBanner();
+        });
+    }
+
+    showInstallBanner() {
+        const banner = document.createElement('div');
+        banner.className = 'install-banner bg-primary text-white p-3 position-fixed bottom-0 start-0 end-0';
+        banner.style.zIndex = '9999';
+        banner.innerHTML = `
+            <div class="container">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <i class="fas fa-download me-2"></i>
+                        <strong>Instalar Cartera Financiera</strong>
+                        <small class="d-block">Accede más rápido y funciona offline</small>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-light btn-sm me-2" id="install-btn">Instalar</button>
+                        <button class="btn btn-outline-light btn-sm" id="dismiss-btn">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(banner);
+        
+        document.getElementById('install-btn').addEventListener('click', () => this.installApp());
+        document.getElementById('dismiss-btn').addEventListener('click', () => banner.remove());
+    }
+
+    async installApp() {
+        if (this.deferredPrompt) {
+            this.deferredPrompt.prompt();
+            const { outcome } = await this.deferredPrompt.userChoice;
+            
+            if (outcome === 'accepted') {
+                toastManager.show('Aplicación instalada correctamente', 'success');
+            }
+            
+            this.deferredPrompt = null;
+            document.querySelector('.install-banner')?.remove();
+        }
+    }
+}
+
+// Clase para manejar tema oscuro
+class ThemeManager {
+    constructor() {
+        this.currentTheme = localStorage.getItem(CONFIG.THEME_KEY) || 'light';
+        this.init();
+    }
+
+    init() {
+        this.applyTheme(this.currentTheme);
+        this.createToggleButton();
+        this.setupAutoTheme();
+    }
+
+    applyTheme(theme) {
+        document.body.setAttribute('data-theme', theme);
+        this.currentTheme = theme;
+        localStorage.setItem(CONFIG.THEME_KEY, theme);
+        
+        // Actualizar meta theme-color para PWA
+        const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+        if (metaThemeColor) {
+            metaThemeColor.setAttribute('content', theme === 'dark' ? '#1a1a1a' : '#667eea');
+        }
+    }
+
+    toggle() {
+        const newTheme = this.currentTheme === 'light' ? 'dark' : 'light';
+        this.applyTheme(newTheme);
+        
+        // Animación de transición
+        document.body.style.transition = 'all 0.3s ease';
+        setTimeout(() => {
+            document.body.style.transition = '';
+        }, 300);
+        
+        toastManager.show(
+            `Tema ${newTheme === 'dark' ? 'oscuro' : 'claro'} activado`,
+            'info',
+            2000
+        );
+    }
+
+    createToggleButton() {
+        // Crear botón toggle si no existe
+        if (document.getElementById('theme-toggle')) return;
+        
+        const navbar = document.querySelector('.navbar-nav');
+        if (!navbar) return;
+        
+        const toggleLi = document.createElement('li');
+        toggleLi.className = 'nav-item';
+        toggleLi.innerHTML = `
+            <button id="theme-toggle" class="btn btn-outline-light btn-sm" title="Cambiar tema">
+                <i class="fas ${this.currentTheme === 'dark' ? 'fa-sun' : 'fa-moon'}"></i>
+            </button>
+        `;
+        
+        navbar.appendChild(toggleLi);
+        document.getElementById('theme-toggle').addEventListener('click', () => this.toggle());
+    }
+
+    setupAutoTheme() {
+        // Detectar preferencia del sistema
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            if (!localStorage.getItem(CONFIG.THEME_KEY)) {
+                this.applyTheme('dark');
+            }
+        }
+        
+        // Escuchar cambios en la preferencia del sistema
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            if (!localStorage.getItem(CONFIG.THEME_KEY)) {
+                this.applyTheme(e.matches ? 'dark' : 'light');
+            }
+        });
+    }
+}
+
+// Clase para manejar sidebar colapsible
+class SidebarManager {
+    constructor() {
+        this.isCollapsed = localStorage.getItem(CONFIG.SIDEBAR_KEY) === 'true';
+        this.init();
+    }
+
+    init() {
+        this.applySidebarState();
+        this.createToggleButton();
+    }
+
+    toggle() {
+        this.isCollapsed = !this.isCollapsed;
+        this.applySidebarState();
+        localStorage.setItem(CONFIG.SIDEBAR_KEY, this.isCollapsed);
+    }
+
+    applySidebarState() {
+        const sidebar = document.getElementById('sidebar') || document.querySelector('.sidebar');
+        if (!sidebar) return;
+        
+        if (this.isCollapsed) {
+            sidebar.classList.add('collapsed');
+        } else {
+            sidebar.classList.remove('collapsed');
+        }
+        
+        // Actualizar botón toggle
+        const toggleBtn = document.getElementById('sidebar-toggle');
+        if (toggleBtn) {
+            toggleBtn.innerHTML = `<i class="fas ${this.isCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'}"></i>`;
+        }
+    }
+
+    createToggleButton() {
+        if (document.getElementById('sidebar-toggle')) return;
+        
+        const navbar = document.querySelector('.navbar-nav');
+        if (!navbar) return;
+        
+        const toggleLi = document.createElement('li');
+        toggleLi.className = 'nav-item';
+        toggleLi.innerHTML = `
+            <button id="sidebar-toggle" class="btn btn-outline-light btn-sm" title="Alternar menú">
+                <i class="fas ${this.isCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'}"></i>
+            </button>
+        `;
+        
+        navbar.appendChild(toggleLi);
+        document.getElementById('sidebar-toggle').addEventListener('click', () => this.toggle());
+    }
+}
+
+// Clase para búsqueda global
+class GlobalSearch {
+    constructor() {
+        this.searchIndex = [];
+        this.isInitialized = false;
+    }
+
+    async init() {
+        await this.buildSearchIndex();
+        this.createSearchBox();
+        this.setupKeyboardShortcut();
+    }
+
+    async buildSearchIndex() {
+        // Construir índice de búsqueda desde las páginas disponibles
+        this.searchIndex = [
+            { title: 'Dashboard', url: '/dashboard', keywords: 'resumen cartera overview' },
+            { title: 'Comprar', url: '/compra', keywords: 'compra purchase buy' },
+            { title: 'Vender', url: '/venta', keywords: 'venta sell sale' },
+            { title: 'Informes', url: '/informe', keywords: 'informes reports analysis' },
+            { title: 'Dashboard Avanzado', url: '/dashboard_avanzado', keywords: 'avanzado advanced metrics analytics' },
+            { title: 'Importar Datos', url: '/importar_datos', keywords: 'importar import upload' },
+            { title: 'Descarga Reportes', url: '/descarga_reportes', keywords: 'descarga download export' }
+        ];
+        
+        this.isInitialized = true;
+    }
+
+    createSearchBox() {
+        if (document.getElementById('global-search')) return;
+        
+        const navbar = document.querySelector('.navbar-nav');
+        if (!navbar) return;
+        
+        const searchLi = document.createElement('li');
+        searchLi.className = 'nav-item dropdown';
+        searchLi.innerHTML = `
+            <div class="dropdown">
+                <input type="text" id="global-search" class="form-control form-control-sm" 
+                       placeholder="Buscar... (Ctrl+K)" autocomplete="off" style="width: 200px;">
+                <div id="search-results" class="dropdown-menu" style="display: none; max-height: 300px; overflow-y: auto;"></div>
+            </div>
+        `;
+        
+        navbar.appendChild(searchLi);
+        
+        const searchInput = document.getElementById('global-search');
+        const searchResults = document.getElementById('search-results');
+        
+        searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value, searchResults));
+        searchInput.addEventListener('focus', () => {
+            if (searchInput.value) this.showResults(searchResults);
+        });
+        
+        document.addEventListener('click', (e) => {
+            if (!searchLi.contains(e.target)) {
+                this.hideResults(searchResults);
+            }
+        });
+    }
+
+    handleSearch(query, resultsContainer) {
+        if (!this.isInitialized || query.length < 2) {
+            this.hideResults(resultsContainer);
+            return;
+        }
+        
+        const results = this.searchIndex.filter(item => 
+            item.title.toLowerCase().includes(query.toLowerCase()) ||
+            item.keywords.toLowerCase().includes(query.toLowerCase())
+        );
+        
+        this.displayResults(results, query, resultsContainer);
+    }
+
+    displayResults(results, query, container) {
+        if (results.length === 0) {
+            container.innerHTML = '<div class="dropdown-item text-muted">No se encontraron resultados</div>';
+        } else {
+            container.innerHTML = results.map(result => `
+                <a class="dropdown-item" href="${result.url}">
+                    <i class="fas fa-link me-2"></i>${result.title}
+                </a>
+            `).join('');
+        }
+        
+        this.showResults(container);
+    }
+
+    showResults(container) {
+        container.style.display = 'block';
+    }
+
+    hideResults(container) {
+        container.style.display = 'none';
+    }
+
+    setupKeyboardShortcut() {
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'k') {
+                e.preventDefault();
+                const searchInput = document.getElementById('global-search');
+                if (searchInput) {
+                    searchInput.focus();
+                }
+            }
+        });
+    }
+}
+
+// ========================================
 // INICIALIZACIÓN Y EVENT LISTENERS
 // ========================================
 
 // Inicializar cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+    // Inicializar PWA y UX Managers
+    try {
+        pwaManager = new PWAManager();
+        themeManager = new ThemeManager();
+        sidebarManager = new SidebarManager();
+        globalSearch = new GlobalSearch();
+        
+        // Inicializar PWA
+        await pwaManager.init();
+        
+        // Inicializar búsqueda global
+        await globalSearch.init();
+        
+        console.log('🚀 Cartera Financiera - UX Managers inicializados');
+    } catch (error) {
+        console.error('Error inicializando UX managers:', error);
+    }
+
     // Configurar eventos para formulario de compra
     const brokerSelect = document.getElementById('Broker');
     if (brokerSelect) {
@@ -662,6 +1044,12 @@ document.addEventListener('DOMContentLoaded', function() {
     setupKeyboardNavigation();
     improveAccessibility();
     
+    // Lazy loading para imágenes
+    setupLazyLoading();
+    
+    // Touch gestures para móviles
+    setupTouchGestures();
+    
     // Mostrar notificación de bienvenida en formularios
     if (compraForm) {
         setTimeout(() => {
@@ -689,6 +1077,149 @@ window.showWarning = function(message) {
     toastManager.show(message, 'warning');
 };
 
+// ========================================
+// FUNCIONES ADICIONALES DE UX
+// ========================================
+
+// Lazy loading para imágenes y componentes
+function setupLazyLoading() {
+    if ('IntersectionObserver' in window) {
+        const imageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    if (img.dataset.src) {
+                        img.src = img.dataset.src;
+                        img.classList.remove('lazy');
+                        observer.unobserve(img);
+                    }
+                }
+            });
+        });
+
+        document.querySelectorAll('img[data-src]').forEach(img => {
+            imageObserver.observe(img);
+        });
+    }
+}
+
+// Touch gestures para móviles
+function setupTouchGestures() {
+    let startX, startY, startTime;
+    
+    document.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        startTime = Date.now();
+    });
+    
+    document.addEventListener('touchend', (e) => {
+        if (!startX || !startY) return;
+        
+        const endX = e.changedTouches[0].clientX;
+        const endY = e.changedTouches[0].clientY;
+        const endTime = Date.now();
+        
+        const diffX = startX - endX;
+        const diffY = startY - endY;
+        const diffTime = endTime - startTime;
+        
+        // Verificar que sea un swipe rápido
+        if (diffTime > 300) return;
+        
+        const absX = Math.abs(diffX);
+        const absY = Math.abs(diffY);
+        
+        // Swipe left/right para navegación
+        if (absX > absY && absX > 50) {
+            if (diffX > 0) {
+                // Swipe izquierda - siguiente elemento
+                handleSwipeLeft();
+            } else {
+                // Swipe derecha - elemento anterior
+                handleSwipeRight();
+            }
+        }
+        
+        startX = startY = null;
+    });
+}
+
+function handleSwipeLeft() {
+    // Navegar a la siguiente sección o elemento
+    const currentSection = getCurrentSection();
+    if (currentSection) {
+        const nextSection = currentSection.nextElementSibling;
+        if (nextSection && nextSection.classList.contains('section')) {
+            nextSection.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+}
+
+function handleSwipeRight() {
+    // Navegar a la sección anterior
+    const currentSection = getCurrentSection();
+    if (currentSection) {
+        const prevSection = currentSection.previousElementSibling;
+        if (prevSection && prevSection.classList.contains('section')) {
+            prevSection.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+}
+
+function getCurrentSection() {
+    const sections = document.querySelectorAll('.section');
+    const scrollPosition = window.scrollY + window.innerHeight / 2;
+    
+    for (let section of sections) {
+        const rect = section.getBoundingClientRect();
+        const sectionTop = rect.top + window.scrollY;
+        const sectionBottom = sectionTop + rect.height;
+        
+        if (scrollPosition >= sectionTop && scrollPosition <= sectionBottom) {
+            return section;
+        }
+    }
+    return null;
+}
+
+// Breadcrumbs dinámicos
+function updateBreadcrumbs() {
+    const breadcrumbsContainer = document.getElementById('breadcrumbs');
+    if (!breadcrumbsContainer) return;
+    
+    const path = window.location.pathname;
+    const breadcrumbs = [
+        { name: 'Inicio', url: '/' },
+    ];
+    
+    // Agregar breadcrumbs según la ruta actual
+    if (path.includes('/dashboard')) {
+        breadcrumbs.push({ name: 'Dashboard', url: '/dashboard' });
+        if (path.includes('/dashboard_avanzado')) {
+            breadcrumbs.push({ name: 'Dashboard Avanzado', url: '/dashboard_avanzado' });
+        }
+    } else if (path.includes('/compra')) {
+        breadcrumbs.push({ name: 'Comprar', url: '/compra' });
+    } else if (path.includes('/venta')) {
+        breadcrumbs.push({ name: 'Vender', url: '/venta' });
+    } else if (path.includes('/informe')) {
+        breadcrumbs.push({ name: 'Informes', url: '/informe' });
+    } else if (path.includes('/importar')) {
+        breadcrumbs.push({ name: 'Importar', url: '/importar_datos' });
+    }
+    
+    // Renderizar breadcrumbs
+    breadcrumbsContainer.innerHTML = breadcrumbs.map((crumb, index) => {
+        const isLast = index === breadcrumbs.length - 1;
+        return `
+            <li class="breadcrumb-item ${isLast ? 'active' : ''}">
+                ${isLast ? crumb.name : `<a href="${crumb.url}">${crumb.name}</a>`}
+            </li>
+        `;
+    }).join('');
+}
+
 // Función global para obtener datos con loading
 window.getDataWithLoading = function(url, elementId, message) {
     return apiManager.getJSON(url, elementId, message);
@@ -705,8 +1236,17 @@ window.CarteraFinanciera = {
     toastManager,
     loadingManager,
     formValidator,
-    apiManager
+    apiManager,
+    pwaManager,
+    themeManager,
+    sidebarManager,
+    globalSearch,
+    updateBreadcrumbs
 };
 
+// Actualizar breadcrumbs cuando cambie la ruta
+window.addEventListener('popstate', updateBreadcrumbs);
+window.addEventListener('load', updateBreadcrumbs);
+
 // Mensaje de inicialización
-console.log('🚀 Cartera Financiera - JavaScript Moderno cargado correctamente');
+console.log('🚀 Cartera Financiera - JavaScript Moderno con PWA y UX avanzado cargado correctamente');
