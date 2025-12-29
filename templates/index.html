@@ -1,338 +1,457 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Cartera Financiera - Sistema profesional de gestión de inversiones y análisis financiero">
-    <meta name="keywords" content="inversiones, cartera, financieros, análisis, broker">
-    <meta name="author" content="Cartera Financiera">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Cartera Financiera - Sistema profesional de gestión de inversiones y análisis financiero"
+    />
+    <meta
+      name="keywords"
+      content="inversiones, cartera, financieros, análisis, broker"
+    />
+    <meta name="author" content="Cartera Financiera" />
+    <meta name="theme-color" content="#667eea" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="CarteraFin" />
     <title>Cartera Financiera - Gestión Profesional de Inversiones</title>
-    
+
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
     <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/static/manifest.json" />
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>"
+    />
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="/static/icons/icon-192x192.png" />
     <!-- Estilos personalizados -->
-    <link href="/static/estilos.css" rel="stylesheet">
-</head>
-<body class="bg-gradient min-vh-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-    
+    <link href="/static/estilos.css" rel="stylesheet" />
+  </head>
+  <body
+    class="bg-gradient min-vh-100"
+    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+  >
     <!-- Header con navegación -->
-    <nav class="navbar navbar-expand-lg navbar-dark" role="navigation" aria-label="Navegación principal">
-        <div class="container">
-            <a class="navbar-brand fw-bold d-flex align-items-center" href="#" aria-label="Inicio - Cartera Financiera">
-                <i class="fas fa-chart-line me-2 fs-4" aria-hidden="true"></i>
-                <span class="fs-4">Cartera Financiera</span>
-            </a>
-            
-            <!-- Botón de menú móvil -->
-            <button class="navbar-toggler border-0" 
-                    type="button" 
-                    data-bs-toggle="collapse" 
-                    data-bs-target="#navbarNav" 
-                    aria-controls="navbarNav" 
-                    aria-expanded="false" 
-                    aria-label="Alternar navegación">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <!-- Enlaces de navegación -->
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" aria-current="page">
-                            <i class="fas fa-home me-1" aria-hidden="true"></i>Inicio
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/apidocs" target="_blank" rel="noopener">
-                            <i class="fas fa-code me-1" aria-hidden="true"></i>API Docs
-                        </a>
-                    </li>
-                </ul>
-            </div>
+    <nav
+      class="navbar navbar-expand-lg navbar-dark"
+      role="navigation"
+      aria-label="Navegación principal"
+    >
+      <div class="container">
+        <a
+          class="navbar-brand fw-bold d-flex align-items-center"
+          href="#"
+          aria-label="Inicio - Cartera Financiera"
+        >
+          <i class="fas fa-chart-line me-2 fs-4" aria-hidden="true"></i>
+          <span class="fs-4">Cartera Financiera</span>
+        </a>
+
+        <!-- Botón de menú móvil -->
+        <button
+          class="navbar-toggler border-0"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+          aria-controls="navbarNav"
+          aria-expanded="false"
+          aria-label="Alternar navegación"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <!-- Enlaces de navegación -->
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="#" aria-current="page">
+                <i class="fas fa-home me-1" aria-hidden="true"></i>Inicio
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link"
+                href="/apidocs"
+                target="_blank"
+                rel="noopener"
+              >
+                <i class="fas fa-code me-1" aria-hidden="true"></i>API Docs
+              </a>
+            </li>
+          </ul>
         </div>
+      </div>
     </nav>
 
     <!-- Contenido principal -->
     <main class="container py-5" role="main">
-        <div class="row justify-content-center">
-            <div class="col-12">
-                
-                <!-- Header de bienvenida -->
-                <div class="text-center text-white mb-5">
-                    <h1 class="display-4 fw-bold mb-3" id="titulo-principal">
-                        <i class="fas fa-chart-pie me-3" aria-hidden="true"></i>
-                        Gestión Profesional de Cartera
-                    </h1>
-                    <p class="lead opacity-75 mb-0">
-                        Sistema integral para el seguimiento y análisis de inversiones financieras
-                    </p>
-                    <small class="opacity-50">
-                        <i class="fas fa-clock me-1" aria-hidden="true"></i>
-                        Última actualización: <span id="ultima-actualizacion">Cargando...</span>
-                    </small>
+      <div class="row justify-content-center">
+        <div class="col-12">
+          <!-- Header de bienvenida -->
+          <div class="text-center text-white mb-5">
+            <h1 class="display-4 fw-bold mb-3" id="titulo-principal">
+              <i class="fas fa-chart-pie me-3" aria-hidden="true"></i>
+              Gestión Profesional de Cartera
+            </h1>
+            <p class="lead opacity-75 mb-0">
+              Sistema integral para el seguimiento y análisis de inversiones
+              financieras
+            </p>
+            <small class="opacity-50">
+              <i class="fas fa-clock me-1" aria-hidden="true"></i>
+              Última actualización:
+              <span id="ultima-actualizacion">Cargando...</span>
+            </small>
+          </div>
+
+          <!-- Grid de acciones principales -->
+          <div class="row g-4" role="region" aria-label="Acciones principales">
+            <!-- Compra de activos -->
+            <div class="col-12 col-md-6 col-lg-4">
+              <div class="card h-100 border-0 shadow-lg hover-lift">
+                <div class="card-body text-center p-4">
+                  <div class="mb-3">
+                    <i
+                      class="fas fa-shopping-cart text-success fs-1"
+                      aria-hidden="true"
+                    ></i>
+                  </div>
+                  <h3 class="h5 card-title fw-bold text-success">
+                    Registrar Compra
+                  </h3>
+                  <p class="card-text text-muted">
+                    Documente nuevas compras de activos financieros con cálculo
+                    automático de totales
+                  </p>
+                  <a
+                    href="{{ url_for('compra') }}"
+                    class="btn btn-success btn-lg w-100 fw-bold"
+                    role="button"
+                    aria-label="Ir a registro de compras"
+                  >
+                    <i class="fas fa-plus-circle me-2" aria-hidden="true"></i>
+                    NUEVA COMPRA
+                  </a>
                 </div>
-
-                <!-- Grid de acciones principales -->
-                <div class="row g-4" role="region" aria-label="Acciones principales">
-                    
-                    <!-- Compra de activos -->
-                    <div class="col-12 col-md-6 col-lg-4">
-                        <div class="card h-100 border-0 shadow-lg hover-lift">
-                            <div class="card-body text-center p-4">
-                                <div class="mb-3">
-                                    <i class="fas fa-shopping-cart text-success fs-1" aria-hidden="true"></i>
-                                </div>
-                                <h3 class="h5 card-title fw-bold text-success">Registrar Compra</h3>
-                                <p class="card-text text-muted">
-                                    Documente nuevas compras de activos financieros con cálculo automático de totales
-                                </p>
-                                <a href="{{ url_for('compra') }}" 
-                                   class="btn btn-success btn-lg w-100 fw-bold"
-                                   role="button"
-                                   aria-label="Ir a registro de compras">
-                                    <i class="fas fa-plus-circle me-2" aria-hidden="true"></i>
-                                    NUEVA COMPRA
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Venta de activos -->
-                    <div class="col-12 col-md-6 col-lg-4">
-                        <div class="card h-100 border-0 shadow-lg hover-lift">
-                            <div class="card-body text-center p-4">
-                                <div class="mb-3">
-                                    <i class="fas fa-hand-holding-usd text-warning fs-1" aria-hidden="true"></i>
-                                </div>
-                                <h3 class="h5 card-title fw-bold text-warning">Registrar Venta</h3>
-                                <p class="card-text text-muted">
-                                    Registre ventas de activos y calcule ganancias/pérdidas automáticamente
-                                </p>
-                                <a href="{{ url_for('venta') }}" 
-                                   class="btn btn-warning btn-lg w-100 fw-bold text-dark"
-                                   role="button"
-                                   aria-label="Ir a registro de ventas">
-                                    <i class="fas fa-chart-line me-2" aria-hidden="true"></i>
-                                    NUEVA VENTA
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Informes -->
-                    <div class="col-12 col-md-6 col-lg-4">
-                        <div class="card h-100 border-0 shadow-lg hover-lift">
-                            <div class="card-body text-center p-4">
-                                <div class="mb-3">
-                                    <i class="fas fa-file-alt text-info fs-1" aria-hidden="true"></i>
-                                </div>
-                                <h3 class="h5 card-title fw-bold text-info">Informes Detallados</h3>
-                                <p class="card-text text-muted">
-                                    Genere reportes completos de su cartera con métricas avanzadas
-                                </p>
-                                <a href="{{ url_for('informe') }}" 
-                                   class="btn btn-info btn-lg w-100 fw-bold text-white"
-                                   role="button"
-                                   aria-label="Ir a informes detallados">
-                                    <i class="fas fa-chart-bar me-2" aria-hidden="true"></i>
-                                    VER INFORMES
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Dashboard -->
-                    <div class="col-12 col-md-6 col-lg-4">
-                        <div class="card h-100 border-0 shadow-lg hover-lift">
-                            <div class="card-body text-center p-4">
-                                <div class="mb-3">
-                                    <i class="fas fa-tachometer-alt text-primary fs-1" aria-hidden="true"></i>
-                                </div>
-                                <h3 class="h5 card-title fw-bold text-primary">Dashboard Básico</h3>
-                                <p class="card-text text-muted">
-                                    Visualice métricas clave y resumen general de su cartera
-                                </p>
-                                <a href="{{ url_for('dashboard') }}" 
-                                   class="btn btn-primary btn-lg w-100 fw-bold"
-                                   role="button"
-                                   aria-label="Ir al dashboard básico">
-                                    <i class="fas fa-dashboard me-2" aria-hidden="true"></i>
-                                    DASHBOARD
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Dashboard Avanzado -->
-                    <div class="col-12 col-md-6 col-lg-4">
-                        <div class="card h-100 border-0 shadow-lg hover-lift">
-                            <div class="card-body text-center p-4">
-                                <div class="mb-3">
-                                    <i class="fas fa-brain text-purple fs-1" aria-hidden="true"></i>
-                                </div>
-                                <h3 class="h5 card-title fw-bold text-purple">Dashboard Avanzado</h3>
-                                <p class="card-text text-muted">
-                                    Análisis profundo con métricas institucionales y backtesting
-                                </p>
-                                <a href="{{ url_for('dashboard_avanzado') }}" 
-                                   class="btn btn-outline-primary btn-lg w-100 fw-bold"
-                                   role="button"
-                                   aria-label="Ir al dashboard avanzado">
-                                    <i class="fas fa-microscope me-2" aria-hidden="true"></i>
-                                    ANÁLISIS AVANZADO
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Documentación API -->
-                    <div class="col-12 col-md-6 col-lg-4">
-                        <div class="card h-100 border-0 shadow-lg hover-lift">
-                            <div class="card-body text-center p-4">
-                                <div class="mb-3">
-                                    <i class="fas fa-code text-secondary fs-1" aria-hidden="true"></i>
-                                </div>
-                                <h3 class="h5 card-title fw-bold text-secondary">API Documentation</h3>
-                                <p class="card-text text-muted">
-                                    Explore las APIs REST disponibles para integración externa
-                                </p>
-                                <a href="/apidocs" 
-                                   class="btn btn-secondary btn-lg w-100 fw-bold"
-                                   role="button"
-                                   target="_blank"
-                                   rel="noopener"
-                                   aria-label="Ver documentación de APIs (se abre en nueva ventana)">
-                                    <i class="fas fa-external-link-alt me-2" aria-hidden="true"></i>
-                                    DOCUMENTACIÓN
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Descarga de Reportes -->
-                    <div class="col-12 col-md-6 col-lg-4 mx-auto">
-                        <div class="card h-100 border-0 shadow-lg hover-lift">
-                            <div class="card-body text-center p-4">
-                                <div class="mb-3">
-                                    <i class="fas fa-download text-success fs-1" aria-hidden="true"></i>
-                                </div>
-                                <h3 class="h5 card-title fw-bold text-success">Exportar Reportes</h3>
-                                <p class="card-text text-muted">
-                                    Descargue reportes en PDF, Excel y CSV para análisis externo
-                                </p>
-                                <a href="{{ url_for('descarga_reportes') }}" 
-                                   class="btn btn-success btn-lg w-100 fw-bold"
-                                   role="button"
-                                   aria-label="Ir a descarga de reportes">
-                                    <i class="fas fa-file-export me-2" aria-hidden="true"></i>
-                                    DESCARGAR REPORTES
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Información adicional -->
-                <div class="row mt-5">
-                    <div class="col-12">
-                        <div class="card border-0 bg-white bg-opacity-10 backdrop-filter backdrop-blur">
-                            <div class="card-body text-white text-center p-4">
-                                <h4 class="h5 fw-bold mb-3">
-                                    <i class="fas fa-star me-2 text-warning" aria-hidden="true"></i>
-                                    Características Principales
-                                </h4>
-                                <div class="row g-3">
-                                    <div class="col-md-3 col-6">
-                                        <div class="d-flex flex-column align-items-center">
-                                            <i class="fas fa-shield-alt fs-2 mb-2" aria-hidden="true"></i>
-                                            <small class="opacity-75">Seguridad Avanzada</small>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3 col-6">
-                                        <div class="d-flex flex-column align-items-center">
-                                            <i class="fas fa-mobile-alt fs-2 mb-2" aria-hidden="true"></i>
-                                            <small class="opacity-75">Diseño Responsivo</small>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3 col-6">
-                                        <div class="d-flex flex-column align-items-center">
-                                            <i class="fas fa-bolt fs-2 mb-2" aria-hidden="true"></i>
-                                            <small class="opacity-75">Alto Rendimiento</small>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3 col-6">
-                                        <div class="d-flex flex-column align-items-center">
-                                            <i class="fas fa-universal-access fs-2 mb-2" aria-hidden="true"></i>
-                                            <small class="opacity-75">Accesibilidad</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+              </div>
             </div>
+
+            <!-- Venta de activos -->
+            <div class="col-12 col-md-6 col-lg-4">
+              <div class="card h-100 border-0 shadow-lg hover-lift">
+                <div class="card-body text-center p-4">
+                  <div class="mb-3">
+                    <i
+                      class="fas fa-hand-holding-usd text-warning fs-1"
+                      aria-hidden="true"
+                    ></i>
+                  </div>
+                  <h3 class="h5 card-title fw-bold text-warning">
+                    Registrar Venta
+                  </h3>
+                  <p class="card-text text-muted">
+                    Registre ventas de activos y calcule ganancias/pérdidas
+                    automáticamente
+                  </p>
+                  <a
+                    href="{{ url_for('venta') }}"
+                    class="btn btn-warning btn-lg w-100 fw-bold text-dark"
+                    role="button"
+                    aria-label="Ir a registro de ventas"
+                  >
+                    <i class="fas fa-chart-line me-2" aria-hidden="true"></i>
+                    NUEVA VENTA
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Informes -->
+            <div class="col-12 col-md-6 col-lg-4">
+              <div class="card h-100 border-0 shadow-lg hover-lift">
+                <div class="card-body text-center p-4">
+                  <div class="mb-3">
+                    <i
+                      class="fas fa-file-alt text-info fs-1"
+                      aria-hidden="true"
+                    ></i>
+                  </div>
+                  <h3 class="h5 card-title fw-bold text-info">
+                    Informes Detallados
+                  </h3>
+                  <p class="card-text text-muted">
+                    Genere reportes completos de su cartera con métricas
+                    avanzadas
+                  </p>
+                  <a
+                    href="{{ url_for('informe') }}"
+                    class="btn btn-info btn-lg w-100 fw-bold text-white"
+                    role="button"
+                    aria-label="Ir a informes detallados"
+                  >
+                    <i class="fas fa-chart-bar me-2" aria-hidden="true"></i>
+                    VER INFORMES
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dashboard -->
+            <div class="col-12 col-md-6 col-lg-4">
+              <div class="card h-100 border-0 shadow-lg hover-lift">
+                <div class="card-body text-center p-4">
+                  <div class="mb-3">
+                    <i
+                      class="fas fa-tachometer-alt text-primary fs-1"
+                      aria-hidden="true"
+                    ></i>
+                  </div>
+                  <h3 class="h5 card-title fw-bold text-primary">
+                    Dashboard Básico
+                  </h3>
+                  <p class="card-text text-muted">
+                    Visualice métricas clave y resumen general de su cartera
+                  </p>
+                  <a
+                    href="{{ url_for('dashboard') }}"
+                    class="btn btn-primary btn-lg w-100 fw-bold"
+                    role="button"
+                    aria-label="Ir al dashboard básico"
+                  >
+                    <i class="fas fa-dashboard me-2" aria-hidden="true"></i>
+                    DASHBOARD
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dashboard Avanzado -->
+            <div class="col-12 col-md-6 col-lg-4">
+              <div class="card h-100 border-0 shadow-lg hover-lift">
+                <div class="card-body text-center p-4">
+                  <div class="mb-3">
+                    <i
+                      class="fas fa-brain text-purple fs-1"
+                      aria-hidden="true"
+                    ></i>
+                  </div>
+                  <h3 class="h5 card-title fw-bold text-purple">
+                    Dashboard Avanzado
+                  </h3>
+                  <p class="card-text text-muted">
+                    Análisis profundo con métricas institucionales y backtesting
+                  </p>
+                  <a
+                    href="{{ url_for('dashboard_avanzado') }}"
+                    class="btn btn-outline-primary btn-lg w-100 fw-bold"
+                    role="button"
+                    aria-label="Ir al dashboard avanzado"
+                  >
+                    <i class="fas fa-microscope me-2" aria-hidden="true"></i>
+                    ANÁLISIS AVANZADO
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Documentación API -->
+            <div class="col-12 col-md-6 col-lg-4">
+              <div class="card h-100 border-0 shadow-lg hover-lift">
+                <div class="card-body text-center p-4">
+                  <div class="mb-3">
+                    <i
+                      class="fas fa-code text-secondary fs-1"
+                      aria-hidden="true"
+                    ></i>
+                  </div>
+                  <h3 class="h5 card-title fw-bold text-secondary">
+                    API Documentation
+                  </h3>
+                  <p class="card-text text-muted">
+                    Explore las APIs REST disponibles para integración externa
+                  </p>
+                  <a
+                    href="/apidocs"
+                    class="btn btn-secondary btn-lg w-100 fw-bold"
+                    role="button"
+                    target="_blank"
+                    rel="noopener"
+                    aria-label="Ver documentación de APIs (se abre en nueva ventana)"
+                  >
+                    <i
+                      class="fas fa-external-link-alt me-2"
+                      aria-hidden="true"
+                    ></i>
+                    DOCUMENTACIÓN
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Descarga de Reportes -->
+            <div class="col-12 col-md-6 col-lg-4 mx-auto">
+              <div class="card h-100 border-0 shadow-lg hover-lift">
+                <div class="card-body text-center p-4">
+                  <div class="mb-3">
+                    <i
+                      class="fas fa-download text-success fs-1"
+                      aria-hidden="true"
+                    ></i>
+                  </div>
+                  <h3 class="h5 card-title fw-bold text-success">
+                    Exportar Reportes
+                  </h3>
+                  <p class="card-text text-muted">
+                    Descargue reportes en PDF, Excel y CSV para análisis externo
+                  </p>
+                  <a
+                    href="{{ url_for('descarga_reportes') }}"
+                    class="btn btn-success btn-lg w-100 fw-bold"
+                    role="button"
+                    aria-label="Ir a descarga de reportes"
+                  >
+                    <i class="fas fa-file-export me-2" aria-hidden="true"></i>
+                    DESCARGAR REPORTES
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Información adicional -->
+          <div class="row mt-5">
+            <div class="col-12">
+              <div
+                class="card border-0 bg-white bg-opacity-10 backdrop-filter backdrop-blur"
+              >
+                <div class="card-body text-white text-center p-4">
+                  <h4 class="h5 fw-bold mb-3">
+                    <i
+                      class="fas fa-star me-2 text-warning"
+                      aria-hidden="true"
+                    ></i>
+                    Características Principales
+                  </h4>
+                  <div class="row g-3">
+                    <div class="col-md-3 col-6">
+                      <div class="d-flex flex-column align-items-center">
+                        <i
+                          class="fas fa-shield-alt fs-2 mb-2"
+                          aria-hidden="true"
+                        ></i>
+                        <small class="opacity-75">Seguridad Avanzada</small>
+                      </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                      <div class="d-flex flex-column align-items-center">
+                        <i
+                          class="fas fa-mobile-alt fs-2 mb-2"
+                          aria-hidden="true"
+                        ></i>
+                        <small class="opacity-75">Diseño Responsivo</small>
+                      </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                      <div class="d-flex flex-column align-items-center">
+                        <i class="fas fa-bolt fs-2 mb-2" aria-hidden="true"></i>
+                        <small class="opacity-75">Alto Rendimiento</small>
+                      </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                      <div class="d-flex flex-column align-items-center">
+                        <i
+                          class="fas fa-universal-access fs-2 mb-2"
+                          aria-hidden="true"
+                        ></i>
+                        <small class="opacity-75">Accesibilidad</small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
     </main>
 
     <!-- Footer -->
-    <footer class="bg-dark bg-opacity-25 text-white py-4 mt-auto" role="contentinfo">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <p class="mb-0 opacity-75">
-                        <i class="fas fa-copyright me-1" aria-hidden="true"></i>
-                        2025 Cartera Financiera - Sistema Profesional de Inversiones
-                    </p>
-                </div>
-                <div class="col-md-6 text-md-end">
-                    <small class="opacity-50">
-                        <i class="fas fa-server me-1" aria-hidden="true"></i>
-                        Versión 4.0 - Implementación Moderna
-                    </small>
-                </div>
-            </div>
+    <footer
+      class="bg-dark bg-opacity-25 text-white py-4 mt-auto"
+      role="contentinfo"
+    >
+      <div class="container">
+        <div class="row align-items-center">
+          <div class="col-md-6">
+            <p class="mb-0 opacity-75">
+              <i class="fas fa-copyright me-1" aria-hidden="true"></i>
+              2025 Cartera Financiera - Sistema Profesional de Inversiones
+            </p>
+          </div>
+          <div class="col-md-6 text-md-end">
+            <small class="opacity-50">
+              <i class="fas fa-server me-1" aria-hidden="true"></i>
+              Versión 4.0 - Implementación Moderna
+            </small>
+          </div>
         </div>
+      </div>
     </footer>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    
+    <!-- JavaScript personalizado con PWA y UX avanzado -->
+    <script src="/static/funciones.js"></script>
+
     <script>
-        // Actualizar timestamp
-        function actualizarTimestamp() {
-            const now = new Date();
-            const timestampElement = document.getElementById('ultima-actualizacion');
-            if (timestampElement) {
-                timestampElement.textContent = now.toLocaleString('es-AR', {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-            }
+      // Actualizar timestamp
+      function actualizarTimestamp() {
+        const now = new Date();
+        const timestampElement = document.getElementById(
+          "ultima-actualizacion"
+        );
+        if (timestampElement) {
+          timestampElement.textContent = now.toLocaleString("es-AR", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
         }
-        
-        // Inicializar
-        document.addEventListener('DOMContentLoaded', function() {
-            actualizarTimestamp();
-            
-            // Configurar tooltips si están disponibles
-            if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
-                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                tooltipTriggerList.map(function (tooltipTriggerEl) {
-                    return new bootstrap.Tooltip(tooltipTriggerEl);
-                });
-            }
-        });
-        
-        // Actualizar cada minuto
-        setInterval(actualizarTimestamp, 60000);
+      }
+
+      // Inicializar
+      document.addEventListener("DOMContentLoaded", function () {
+        actualizarTimestamp();
+
+        // Configurar tooltips si están disponibles
+        if (typeof bootstrap !== "undefined" && bootstrap.Tooltip) {
+          const tooltipTriggerList = [].slice.call(
+            document.querySelectorAll('[data-bs-toggle="tooltip"]')
+          );
+          tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+          });
+        }
+      });
+
+      // Actualizar cada minuto
+      setInterval(actualizarTimestamp, 60000);
     </script>
-</body>
+  </body>
 </html>
