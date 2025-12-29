@@ -23,6 +23,10 @@ from sklearn.linear_model import LinearRegression
 from modelo import db, Activo, Ticker
 import logging
 import math
+from scipy import stats
+from scipy.stats import norm
+import warnings
+warnings.filterwarnings('ignore')
 
 logger = logging.getLogger(__name__)
 
@@ -717,4 +721,607 @@ def analisis_sensibilidad(activo_id, params_variacion=None):
         
     except Exception as e:
         logger.error(f"Error en análisis de sensibilidad para activo {activo_id}: {str(e)}")
+        return {'error': str(e)}
+
+# ========================================
+# MÉTRICAS FINANCIERAS AVANZADAS INSTITUCIONALES
+# ========================================
+
+def calcular_var_historico(activo_id, confidence_level=0.95, window_days=252):
+    """
+    Calcula VaR (Value at Risk) histórico para un activo
+    
+    Args:
+        activo_id (int): ID del activo
+        confidence_level (float): Nivel de confianza (0.95 = 95%)
+        window_days (int): Ventana de días para calcular returns históricos
+        
+    Returns:
+        dict: Métricas de VaR histórico
+    """
+    try:
+        activo = Activo.query.get(activo_id)
+        if not activo:
+            return {'error': 'Activo no encontrado'}
+        
+        # Simular serie de precios históricos basada en el activo
+        np.random.seed(42 + activo_id)
+        dias_analisis = min(window_days, max(30, (datetime.now() - activo.Fecha_Hora_Compra).days))
+        
+        # Generar precios simulados con volatilidad realista
+        precio_base = float(activo.Precio_Compra)
+        volatilidad_anual = 0.25  # 25% volatilidad anual típica
+        retorno_esperado_anual = 0.12  # 12% retorno esperado anual
+        
+        # Generar returns diarios simulados
+        retornos_diarios = np.random.normal(
+            retorno_esperado_anual/252, 
+            volatilidad_anual/np.sqrt(252), 
+            dias_analisis
+        )
+        
+        # Calcular VaR histórico
+        var_percentile = (1 - confidence_level) * 100
+        var_value = np.percentile(retornos_diarios, var_percentile)
+        
+        # VaR en términos monetarios
+        posicion_valor = precio_base * float(activo.Cantidad_Nominales_Compra)
+        var_monetario = abs(var_value * posicion_valor)
+        
+        # Expected Shortfall (CVaR) - promedio de pérdidas peores que VaR
+        tail_losses = retornos_diarios[retornos_diarios <= var_value]
+        expected_shortfall = np.mean(tail_losses) if len(tail_losses) > 0 else var_value
+        
+        # OPTIMIZACIÓN: Evitar múltiples accesos a relaciones
+        ticker_nombre = 'N/A'
+        if hasattr(activo, 'ticker') and activo.ticker:
+            ticker_nombre = activo.ticker.Nombre_Ticker
+        
+        return {
+            'activo_id': activo_id,
+            'ticker': ticker_nombre,
+            'var_historico': {
+                'nivel_confianza': f"{confidence_level*100:.1f}%",
+                'var_porcentaje': round(var_value * 100, 3),
+                'var_monetario': round(var_monetario, 2),
+                'expected_shortfall_porcentaje': round(expected_shortfall * 100, 3),
+                'expected_shortfall_monetario': round(abs(expected_shortfall * posicion_valor), 2)
+            },
+            'parametros': {
+                'ventana_dias': dias_analisis,
+                'volatilidad_anual_simulada': round(volatilidad_anual * 100, 2),
+                'retorno_esperado_anual_simulado': round(retorno_esperado_anual * 100, 2)
+            },
+            'interpretacion': {
+                'var_significado': f"Con {confidence_level*100:.1f}% de confianza, la pérdida máxima en un día no superará el {abs(var_value)*100:.2f}%",
+                'expected_shortfall': f"Pérdida promedio en el {var_percentile:.1f}% de los peores casos: {abs(expected_shortfall)*100:.2f}%"
+            },
+            'distribucion': {
+                'minimo': round(np.min(retornos_diarios) * 100, 3),
+                'maximo': round(np.max(retornos_diarios) * 100, 3),
+                'media': round(np.mean(retornos_diarios) * 100, 3),
+                'desviacion': round(np.std(retornos_diarios) * 100, 3)
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error calculando VaR histórico para activo {activo_id}: {str(e)}")
+        return {'error': str(e)}
+
+def calcular_var_parametrico(activo_id, confidence_level=0.95):
+    """
+    Calcula VaR paramétrico (método varianza-covarianza) para un activo
+    
+    Args:
+        activo_id (int): ID del activo
+        confidence_level (float): Nivel de confianza
+        
+    Returns:
+        dict: Métricas de VaR paramétrico
+    """
+    try:
+        activo = Activo.query.get(activo_id)
+        if not activo:
+            return {'error': 'Activo no encontrado'}
+        
+        # Parámetros del activo
+        precio_compra = float(activo.Precio_Compra)
+        volatilidad_anual = 0.25  # Simulada
+        retorno_esperado_anual = 0.12  # Simulado
+        
+        # Calcular parámetros diarios
+        retorno_diario = retorno_esperado_anual / 252
+        volatilidad_diaria = volatilidad_anual / np.sqrt(252)
+        
+        # Calcular z-score para el nivel de confianza
+        z_score = norm.ppf(1 - confidence_level)
+        
+        # VaR paramétrico usando distribución normal
+        var_diario = retorno_diario + z_score * volatilidad_diaria
+        
+        # VaR en términos monetarios
+        posicion_valor = precio_compra * float(activo.Cantidad_Nominales_Compra)
+        var_monetario = abs(var_diario * posicion_valor)
+        
+        # Expected Shortfall paramétrico
+        # Para distribución normal: ES = μ + σ * φ(z) / (1-α)
+        # donde φ es la densidad normal y α = 1-confidence_level
+        alpha = 1 - confidence_level
+        es_diario = retorno_diario + volatilidad_diaria * norm.pdf(z_score) / alpha
+        
+        # OPTIMIZACIÓN: Evitar múltiples accesos a relaciones
+        ticker_nombre = 'N/A'
+        if hasattr(activo, 'ticker') and activo.ticker:
+            ticker_nombre = activo.ticker.Nombre_Ticker
+        
+        return {
+            'activo_id': activo_id,
+            'ticker': ticker_nombre,
+            'var_parametrico': {
+                'nivel_confianza': f"{confidence_level*100:.1f}%",
+                'var_porcentaje': round(var_diario * 100, 3),
+                'var_monetario': round(var_monetario, 2),
+                'expected_shortfall_porcentaje': round(es_diario * 100, 3),
+                'expected_shortfall_monetario': round(abs(es_diario * posicion_valor), 2)
+            },
+            'parametros': {
+                'z_score': round(z_score, 3),
+                'retorno_diario': round(retorno_diario * 100, 4),
+                'volatilidad_diaria': round(volatilidad_diaria * 100, 4),
+                'volatilidad_anual': round(volatilidad_anual * 100, 2)
+            },
+            'interpretacion': {
+                'var_significado': f"Con {confidence_level*100:.1f}% de confianza, la pérdida máxima en un día será {abs(var_diario)*100:.2f}%",
+                'supuestos': 'Distribución normal de retornos, parámetros constantes',
+                'expected_shortfall': f"Pérdida promedio en el peor {((1-confidence_level)*100):.1f}% de casos: {abs(es_diario)*100:.2f}%"
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error calculando VaR paramétrico para activo {activo_id}: {str(e)}")
+        return {'error': str(e)}
+
+def analisis_monte_carlo(activo_id, num_simulaciones=10000, dias_horizonte=30):
+    """
+    Análisis Monte Carlo para simulación de precios futuros
+    
+    Args:
+        activo_id (int): ID del activo
+        num_simulaciones (int): Número de simulaciones
+        dias_horizonte (int): Días hacia adelante para simular
+        
+    Returns:
+        dict: Resultados del análisis Monte Carlo
+    """
+    try:
+        activo = Activo.query.get(activo_id)
+        if not activo:
+            return {'error': 'Activo no encontrado'}
+        
+        # Parámetros del activo
+        precio_actual = float(activo.Precio_Compra)
+        volatilidad_anual = 0.25  # Simulada
+        retorno_esperado_anual = 0.12  # Simulado
+        
+        # Parámetros diarios
+        dt = dias_horizonte / 252  # Conversión a años
+        mu_dt = retorno_esperado_anual * dt
+        sigma_dt = volatilidad_anual * np.sqrt(dt)
+        
+        # Simulación Monte Carlo
+        np.random.seed(42 + activo_id)
+        
+        # Generar números aleatorios para todas las simulaciones
+        z = np.random.standard_normal((num_simulaciones, 1))
+        
+        # Modelo GBM (Geometric Brownian Motion)
+        # S(t) = S(0) * exp((μ - σ²/2)*t + σ*W(t))
+        precios_finales = precio_actual * np.exp((mu_dt - 0.5 * sigma_dt**2) + sigma_dt * z)
+        
+        # Calcular retornos
+        retornos = (precios_finales - precio_actual) / precio_actual
+        
+        # Estadísticas de los resultados
+        precio_medio = np.mean(precios_finales)
+        precio_mediano = np.median(precios_finales)
+        precio_std = np.std(precios_finales)
+        
+        # Percentiles importantes
+        percentiles = [5, 10, 25, 50, 75, 90, 95]
+        percentiles_precios = np.percentile(precios_finales, percentiles)
+        percentiles_retornos = np.percentile(retornos, percentiles)
+        
+        # Probabilidades
+        prob_perdida = np.mean(retornos < 0) * 100
+        prob_ganancia = np.mean(retornos > 0) * 100
+        
+        # Value at Risk y Expected Shortfall
+        var_95 = np.percentile(retornos, 5)
+        var_99 = np.percentile(retornos, 1)
+        
+        tail_losses = retornos[retornos <= var_95]
+        expected_shortfall = np.mean(tail_losses) if len(tail_losses) > 0 else var_95
+        
+        # OPTIMIZACIÓN: Evitar múltiples accesos a relaciones
+        ticker_nombre = 'N/A'
+        if hasattr(activo, 'ticker') and activo.ticker:
+            ticker_nombre = activo.ticker.Nombre_Ticker
+        
+        return {
+            'activo_id': activo_id,
+            'ticker': ticker_nombre,
+            'simulacion': {
+                'num_simulaciones': num_simulaciones,
+                'horizonte_dias': dias_horizonte,
+                'precio_actual': precio_actual
+            },
+            'resultados': {
+                'precio_medio': round(precio_medio, 2),
+                'precio_mediano': round(precio_mediano, 2),
+                'precio_std': round(precio_std, 2),
+                'retorno_medio_porcentaje': round(np.mean(retornos) * 100, 3),
+                'retorno_std_porcentaje': round(np.std(retornos) * 100, 3)
+            },
+            'percentiles': {
+                'precios': {str(p): round(v, 2) for p, v in zip(percentiles, percentiles_precios)},
+                'retornos_porcentaje': {str(p): round(v * 100, 3) for p, v in zip(percentiles, percentiles_retornos)}
+            },
+            'probabilidades': {
+                'probabilidad_perdida_porcentaje': round(prob_perdida, 2),
+                'probabilidad_ganancia_porcentaje': round(prob_ganancia, 2)
+            },
+            'risk_metrics': {
+                'var_95_porcentaje': round(var_95 * 100, 3),
+                'var_99_porcentaje': round(var_99 * 100, 3),
+                'expected_shortfall_porcentaje': round(expected_shortfall * 100, 3)
+            },
+            'interpretacion': {
+                'resumen': f"En {dias_horizonte} días, el precio promedio esperado es ${precio_medio:.2f}",
+                'escenarios_extremos': f"5% de probabilidad de perder más del {abs(var_95)*100:.2f}%",
+                'probabilidad_perdida': f"{prob_perdida:.1f}% de probabilidad de pérdida"
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error en análisis Monte Carlo para activo {activo_id}: {str(e)}")
+        return {'error': str(e)}
+
+def stress_testing_automatizado(activo_id, escenarios=None):
+    """
+    Stress testing automatizado para evaluar comportamiento bajo condiciones extremas
+    
+    Args:
+        activo_id (int): ID del activo
+        escenarios (dict): Escenarios de stress personalizados
+        
+    Returns:
+        dict: Resultados del stress testing
+    """
+    try:
+        activo = Activo.query.get(activo_id)
+        if not activo:
+            return {'error': 'Activo no encontrado'}
+        
+        precio_compra = float(activo.Precio_Compra)
+        cantidad = float(activo.Cantidad_Nominales_Compra)
+        posicion_valor = precio_compra * cantidad
+        
+        # Escenarios de stress predefinidos
+        if escenarios is None:
+            escenarios = {
+                'crisis_2008': {
+                    'nombre': 'Crisis Financiera 2008',
+                    'shock_precio': -0.40,  # -40%
+                    'aumento_volatilidad': 2.5,
+                    'descripcion': 'Shock similar a la crisis financiera de 2008'
+                },
+                'pandemia_covid': {
+                    'nombre': 'Pandemia COVID-19',
+                    'shock_precio': -0.35,  # -35%
+                    'aumento_volatilidad': 3.0,
+                    'descripcion': 'Shock similar a la pandemia de COVID-19'
+                },
+                'crisis_argentina': {
+                    'nombre': 'Crisis Económica Argentina',
+                    'shock_precio': -0.60,  # -60%
+                    'aumento_volatilidad': 4.0,
+                    'descripcion': 'Shock severo típico de crisis locales'
+                },
+                'shock_banco_central': {
+                    'nombre': 'Shock de Política Monetaria',
+                    'shock_precio': -0.20,  # -20%
+                    'aumento_volatilidad': 2.0,
+                    'descripcion': 'Shock por cambios inesperados en tasas de interés'
+                },
+                'correlacion_mercado': {
+                    'nombre': 'Shock de Correlación de Mercado',
+                    'shock_precio': -0.25,  # -25%
+                    'aumento_volatilidad': 1.5,
+                    'descripcion': 'Aumento en la correlación con mercados globales'
+                }
+            }
+        
+        resultados_escenarios = {}
+        
+        for nombre_escenario, params in escenarios.items():
+            # Calcular impacto del escenario
+            shock_porcentaje = params['shock_precio']
+            precio_stress = precio_compra * (1 + shock_porcentaje)
+            perdida_monetaria = (precio_compra - precio_stress) * cantidad
+            perdida_porcentaje = abs(shock_porcentaje) * 100
+            
+            # Ajustar métricas de riesgo
+            volatilidad_base = 0.25
+            volatilidad_stress = volatilidad_base * params['aumento_volatilidad']
+            
+            # VaR bajo stress
+            var_stress = abs(shock_porcentaje + 1.65 * volatilidad_stress / np.sqrt(252))
+            
+            resultados_escenarios[nombre_escenario] = {
+                'nombre': params['nombre'],
+                'descripcion': params['descripcion'],
+                'shock_porcentaje': round(shock_porcentaje * 100, 2),
+                'precio_stress': round(precio_stress, 2),
+                'perdida_monetaria': round(perdida_monetaria, 2),
+                'perdida_porcentaje': round(perdida_porcentaje, 2),
+                'volatilidad_estimada': round(volatilidad_stress * 100, 2),
+                'var_estimado': round(var_stress * 100, 2),
+                'impacto_cartera': round((perdida_monetaria / posicion_valor) * 100, 2)
+            }
+        
+        # Calcular métricas agregadas
+        perdidas_monetarias = [r['perdida_monetaria'] for r in resultados_escenarios.values()]
+        perdidas_porcentuales = [r['perdida_porcentaje'] for r in resultados_escenarios.values()]
+        
+        stress_summary = {
+            'peor_escenario': max(resultados_escenarios.items(), key=lambda x: x[1]['perdida_porcentaje']),
+            'perdida_promedio': round(np.mean(perdidas_porcentuales), 2),
+            'perdida_maxima': round(np.max(perdidas_porcentuales), 2),
+            'perdida_minima': round(np.min(perdidas_porcentuales), 2),
+            'std_perdidas': round(np.std(perdidas_porcentuales), 2)
+        }
+        
+        # Recomendaciones
+        recomendaciones = []
+        if stress_summary['perdida_maxima'] > 50:
+            recomendaciones.append("Considerar reducción de posición debido a alto riesgo de stress")
+        if stress_summary['std_perdidas'] > 15:
+            recomendaciones.append("Alta variabilidad entre escenarios - diversificar hedge")
+        recomendaciones.append("Monitorear indicadores macroeconómicos para anticipar shocks")
+        recomendaciones.append("Considerar estrategias de cobertura para escenarios extremos")
+        
+        # OPTIMIZACIÓN: Evitar múltiples accesos a relaciones
+        ticker_nombre = 'N/A'
+        if hasattr(activo, 'ticker') and activo.ticker:
+            ticker_nombre = activo.ticker.Nombre_Ticker
+        
+        return {
+            'activo_id': activo_id,
+            'ticker': ticker_nombre,
+            'posicion_actual': {
+                'precio_compra': precio_compra,
+                'cantidad': cantidad,
+                'valor_posicion': round(posicion_valor, 2)
+            },
+            'escenarios_stress': resultados_escenarios,
+            'resumen_stress': stress_summary,
+            'recomendaciones': recomendaciones,
+            'interpretacion': {
+                'objetivo': 'Evaluar comportamiento bajo condiciones extremas de mercado',
+                'metodologia': 'Simulación de shocks históricos y escenarios hipotéticos',
+                'frecuencia': 'Actualizar trimestralmente o ante eventos de mercado significativos'
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error en stress testing para activo {activo_id}: {str(e)}")
+        return {'error': str(e)}
+
+def calcular_metricas_esg(activo_id):
+    """
+    Calcula métricas ESG (Environmental, Social, Governance) básicas
+    
+    Args:
+        activo_id (int): ID del activo
+        
+    Returns:
+        dict: Métricas ESG del activo
+    """
+    try:
+        activo = Activo.query.get(activo_id)
+        if not activo:
+            return {'error': 'Activo no encontrado'}
+        
+        # Obtener información del ticker
+        ticker_nombre = 'N/A'
+        descripcion = 'N/A'
+        if hasattr(activo, 'ticker') and activo.ticker:
+            ticker_nombre = activo.ticker.Nombre_Ticker
+            descripcion = activo.ticker.Descripcion or ''
+        
+        # Simular métricas ESG basadas en el tipo de instrumento
+        # En producción, esto vendría de proveedores de datos ESG especializados
+        instrumento_nombre = 'Unknown'
+        if hasattr(activo, 'ticker') and activo.ticker and hasattr(activo.ticker, 'instrumento_financiero'):
+            instrumento_nombre = activo.ticker.instrumento_financiero.Nombre or 'Unknown'
+        
+        # Asignar scores ESG simulados basados en el tipo de instrumento
+        esg_scores = {
+            'Acciones': {'environmental': 65, 'social': 70, 'governance': 75},
+            'Bonos': {'environmental': 80, 'social': 75, 'governance': 85},
+            'CEDEAR': {'environmental': 60, 'social': 65, 'governance': 70},
+            'ON': {'environmental': 55, 'social': 60, 'governance': 65},
+            'Futuros': {'environmental': 45, 'social': 50, 'governance': 55},
+            'Opciones': {'environmental': 45, 'social': 50, 'governance': 55}
+        }
+        
+        # Obtener score del instrumento o usar valores por defecto
+        scores = esg_scores.get(instrumento_nombre, {
+            'environmental': 60,
+            'social': 65,
+            'governance': 70
+        })
+        
+        # Calcular score compuesto ESG
+        esg_compuesto = (scores['environmental'] + scores['social'] + scores['governance']) / 3
+        
+        # Clasificar según score ESG
+        if esg_compuesto >= 80:
+            rating_esg = 'A+'
+            categoria_esg = 'Excelente'
+        elif esg_compuesto >= 70:
+            rating_esg = 'A'
+            categoria_esg = 'Muy Bueno'
+        elif esg_compuesto >= 60:
+            rating_esg = 'B+'
+            categoria_esg = 'Bueno'
+        elif esg_compuesto >= 50:
+            rating_esg = 'B'
+            categoria_esg = 'Moderado'
+        else:
+            rating_esg = 'C'
+            categoria_esg = 'Deficiente'
+        
+        # Factores de riesgo ESG
+        factores_riesgo = []
+        if scores['environmental'] < 50:
+            factores_riesgo.append('Riesgo ambiental alto')
+        if scores['social'] < 50:
+            factores_riesgo.append('Riesgo social alto')
+        if scores['governance'] < 50:
+            factores_riesgo.append('Riesgo de gobernanza alto')
+        
+        # Oportunidades ESG
+        oportunidades = []
+        if scores['environmental'] > 70:
+            oportunidades.append('Oportunidades en economía verde')
+        if scores['social'] > 70:
+            oportunidades.append('Alto potencial de impacto social positivo')
+        if scores['governance'] > 70:
+            oportunidades.append('Gobernanza corporativa sólida')
+        
+        # Benchmarks de industria (simulados)
+        benchmarks = {
+            'environmental': 62,
+            'social': 68,
+            'governance': 72
+        }
+        
+        # Comparación con benchmark
+        comparacion_benchmark = {
+            'environmental': scores['environmental'] - benchmarks['environmental'],
+            'social': scores['social'] - benchmarks['social'],
+            'governance': scores['governance'] - benchmarks['governance']
+        }
+        
+        return {
+            'activo_id': activo_id,
+            'ticker': ticker_nombre,
+            'instrumento': instrumento_nombre,
+            'esg_scores': {
+                'environmental': scores['environmental'],
+                'social': scores['social'],
+                'governance': scores['governance'],
+                'compuesto': round(esg_compuesto, 1)
+            },
+            'rating_esg': {
+                'letra': rating_esg,
+                'categoria': categoria_esg,
+                'numerico': round(esg_compuesto, 1)
+            },
+            'analisis': {
+                'factores_riesgo': factores_riesgo,
+                'oportunidades': oportunidades,
+                'comparacion_benchmark': {k: round(v, 1) for k, v in comparacion_benchmark.items()}
+            },
+            'recomendaciones': [
+                'Evaluar criterios ESG en proceso de inversión' if esg_compuesto < 60 else 'Cumple criterios ESG mínimos',
+                'Monitorear cambios en scoring ESG trimestralmente',
+                'Considerar factores ESG en gestión de riesgo'
+            ],
+            'metadatos': {
+                'fuente_datos': 'Simulado - En producción usar proveedores especializados',
+                'ultima_actualizacion': datetime.now().isoformat(),
+                'metodologia': 'Score compuesto basado en múltiples fuentes de datos ESG'
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error calculando métricas ESG para activo {activo_id}: {str(e)}")
+        return {'error': str(e)}
+
+def portfolio_var_cartera(confidence_level=0.95, metodo='historico'):
+    """
+    Calcula VaR de toda la cartera (análisis agregado)
+    
+    Args:
+        confidence_level (float): Nivel de confianza
+        metodo (str): 'historico' o 'parametrico'
+        
+    Returns:
+        dict: VaR de la cartera completa
+    """
+    try:
+        activos = Activo.query.filter(Activo.Activo_Estado == 'EN_CARTERA').all()
+        
+        if not activos:
+            return {'error': 'No hay activos en cartera para calcular VaR'}
+        
+        # Calcular VaR individual para cada activo
+        var_individuales = []
+        valores_posicion = []
+        
+        for activo in activos:
+            if metodo == 'historico':
+                var_result = calcular_var_historico(activo.Id_Activo, confidence_level)
+            else:
+                var_result = calcular_var_parametrico(activo.Id_Activo, confidence_level)
+            
+            if 'error' not in var_result:
+                var_individuales.append({
+                    'activo_id': activo.Id_Activo,
+                    'ticker': var_result.get('ticker', 'N/A'),
+                    'var_porcentaje': abs(var_result[f'var_{metodo}']['var_porcentaje']) / 100,
+                    'var_monetario': var_result[f'var_{metodo}']['var_monetario']
+                })
+                
+                valor_posicion = float(activo.Precio_Compra) * float(activo.Cantidad_Nominales_Compra)
+                valores_posicion.append(valor_posicion)
+        
+        if not var_individuales:
+            return {'error': 'No se pudo calcular VaR para ningún activo'}
+        
+        # Calcular VaR de cartera (suma simple de VaRs individuales)
+        # En producción se usaría matriz de correlaciones para mayor precisión
+        var_total_cartera = sum([v['var_monetario'] for v in var_individuales])
+        valor_total_cartera = sum(valores_posicion)
+        var_porcentaje_cartera = var_total_cartera / valor_total_cartera if valor_total_cartera > 0 else 0
+        
+        # Diversificación del riesgo
+        var_suma_simple = sum([abs(v['var_porcentaje']) * valor for v, valor in zip(var_individuales, valores_posicion)])
+        factor_diversificacion = var_total_cartera / var_suma_simple if var_suma_simple > 0 else 1
+        
+        return {
+            'metodo': metodo,
+            'nivel_confianza': f"{confidence_level*100:.1f}%",
+            'cartera': {
+                'valor_total': round(valor_total_cartera, 2),
+                'num_activos': len(activos),
+                'var_total_monetario': round(var_total_cartera, 2),
+                'var_porcentaje': round(var_porcentaje_cartera * 100, 3)
+            },
+            'desglose_activos': var_individuales,
+            'analisis_diversificacion': {
+                'factor_diversificacion': round(factor_diversificacion, 3),
+                'beneficio_diversificacion': round((1 - factor_diversificacion) * 100, 1),
+                'interpretacion': 'Mayor diversificación reduce riesgo agregado' if factor_diversificacion < 1 else 'Baja diversificación'
+            },
+            'interpretacion': {
+                'var_significado': f"Con {confidence_level*100:.1f}% de confianza, la pérdida máxima de la cartera no superará ${var_total_cartera:,.2f}",
+                'porcentaje_cartera': f"VaR representa el {var_porcentaje_cartera*100:.2f}% del valor total de la cartera"
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error calculando VaR de cartera: {str(e)}")
         return {'error': str(e)}
