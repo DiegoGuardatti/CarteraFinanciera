@@ -1,0 +1,129 @@
+# ==============================================================================
+# CONFIGURACIÓN DE PROMETHEUS
+# Sistema de Monitoreo - Cartera Financiera
+# ==============================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: "cartera-financiera"
+    environment: "production"
+
+# ==================== REGLAS DE ALERTA ====================
+rule_files:
+  - "rules/*.yml"
+
+# ==================== SCRAPERS ====================
+scrape_configs:
+  # ==================== PROMETHEUS SELF-MONITORING ====================
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+    scrape_interval: 5s
+    metrics_path: /metrics
+
+  # ==================== NODE EXPORTER (SISTEMA) ====================
+  - job_name: "node-exporter"
+    static_configs:
+      - targets: ["node-exporter:9100"]
+    scrape_interval: 15s
+    metrics_path: /metrics
+
+  # ==================== MYSQL EXPORTER ====================
+  - job_name: "mysql-exporter"
+    static_configs:
+      - targets: ["mysql-exporter:9104"]
+    scrape_interval: 15s
+    metrics_path: /metrics
+
+  # ==================== REDIS EXPORTER ====================
+  - job_name: "redis-exporter"
+    static_configs:
+      - targets: ["redis-exporter:9121"]
+    scrape_interval: 15s
+    metrics_path: /metrics
+
+  # ==================== BLACKBOX EXPORTER (HEALTH CHECKS) ====================
+  - job_name: "blackbox"
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - http://localhost:5000/health
+          - http://localhost:5000/api/dashboard/summary
+          - http://localhost:5000/dashboard
+          - http://localhost:5000/dashboard_avanzado
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # ==================== BLACKBOX TCP CHECKS ====================
+  - job_name: "blackbox-tcp"
+    metrics_path: /probe
+    params:
+      module: [tcp_connect]
+    static_configs:
+      - targets:
+          - mysql:3306
+          - redis:6379
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # ==================== APLICACIÓN FLASK (CUSTOM METRICS) ====================
+  - job_name: "flask-app"
+    static_configs:
+      - targets: ["flask-app:5000"]
+    scrape_interval: 10s
+    metrics_path: /metrics
+    scrape_timeout: 5s
+
+  # ==================== GRAFANA ====================
+  - job_name: "grafana"
+    static_configs:
+      - targets: ["grafana:3000"]
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # ==================== ALERTMANAGER ====================
+  - job_name: "alertmanager"
+    static_configs:
+      - targets: ["alertmanager:9093"]
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+# ==================== REMOTE STORAGE (OPCIONAL) ====================
+# Descomentar si se quiere usar almacenamiento remoto
+# remote_write:
+#   - url: "http://remote-storage:9201/write"
+#     queue_config:
+#       max_samples_per_send: 1000
+#       max_shards: 200
+#       capacity: 2500
+
+# ==================== REMOTE READ (OPCIONAL) ====================
+# remote_read:
+#   - url: "http://remote-storage:9201/read"
+
+# ==================== STORAGE CONFIG ====================
+storage:
+  tsdb:
+    retention.time: 30d
+    retention.size: 10GB
+
+# ==================== ALERTING ====================
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093

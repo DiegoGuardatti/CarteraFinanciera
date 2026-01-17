@@ -48,7 +48,11 @@ def configure_cache(app: Flask):
         
         print("✅ Redis cache configurado exitosamente")
         
-    except (ImportError, Exception) as e:
+    except ImportError:
+        print("⚠️ Redis no disponible, usando SimpleCache")
+        print("   Para usar Redis, instalar con: pip install redis")
+        # Mantener configuración por defecto
+    except Exception as e:
         print(f"⚠️ Redis no disponible ({str(e)}), usando SimpleCache")
         # Mantener configuración por defecto
     

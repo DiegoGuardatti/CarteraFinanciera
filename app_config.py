@@ -92,9 +92,12 @@ def load_env_file(env_file='.env'):
             load_dotenv(env_file)
             print(f"✅ Variables de entorno cargadas desde {env_file}")
         except ImportError:
-            print("⚠️  python-dotenv no está instalado. Instalar con: pip install python-dotenv")
+            print("⚠️  python-dotenv no está instalado. Variables de entorno no cargadas desde archivo.")
+            print("   Para cargar variables de entorno, instalar con: pip install python-dotenv")
         except Exception as e:
             print(f"⚠️  Error cargando {env_file}: {e}")
+    else:
+        print(f"ℹ️  Archivo {env_file} no encontrado, usando variables de entorno del sistema")
 
 # Configuración de logging
 def setup_logging(app):

@@ -4,7 +4,7 @@ Archivo principal minimalista que configura y ejecuta la aplicación
 """
 
 from flask import Flask
-from config.settings import load_env_file, get_config
+from app_config import load_env_file, get_config
 from extensions import init_extensions, get_swagger
 from config.security import configure_security
 from routes.main import main_bp
@@ -12,6 +12,8 @@ from routes.ajax import ajax_bp
 from routes.api_metrics import api_metrics_bp
 from routes.api_advanced import api_advanced_bp
 from routes.api_reports import api_reports_bp
+from routes.api_drilldown import api_drilldown_bp
+from routes.api_health import api_health_bp
 from routes.imports import imports_bp
 from routes.debug import debug_bp
 
@@ -55,6 +57,12 @@ def register_blueprints(app):
     
     # APIs de reportes
     app.register_blueprint(api_reports_bp)
+    
+    # APIs de drill-down y análisis detallado
+    app.register_blueprint(api_drilldown_bp)
+    
+    # APIs de health check y monitoreo
+    app.register_blueprint(api_health_bp)
     
     # Importación de archivos
     app.register_blueprint(imports_bp)

@@ -6,6 +6,7 @@
     <title>Dashboard Avanzado - Análisis Financiero Profesional</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         .metric-card {
@@ -358,6 +359,9 @@
         </div>
     </div>
 
+    <!-- Scripts de Visualizaciones Interactivas -->
+    <script src="{{ url_for('static', filename='visualizaciones_interactivas.js') }}"></script>
+
     <script>
         // Variables globales
         let correlationData = null;
@@ -468,7 +472,7 @@
             `;
         }
 
-        // Cargar matriz de correlación
+        // Cargar matriz de correlación con interactividad mejorada
         async function cargarMatrizCorrelacion(data) {
             if (!data || data.error) {
                 document.getElementById('correlation-heatmap').innerHTML = 
@@ -476,6 +480,25 @@
                 return;
             }
 
+            // Usar el heatmap dinámico si está disponible
+            if (window.DynamicHeatmap) {
+                try {
+                    // Limpiar contenedor
+                    document.getElementById('correlation-heatmap').innerHTML = '<div id="correlation-heatmap-container"></div>';
+                    
+                    // Crear heatmap dinámico
+                    window.dynamicHeatmap = new DynamicHeatmap('correlation-heatmap-container', data);
+                } catch (error) {
+                    console.warn('Error creando heatmap dinámico, usando versión estándar:', error);
+                    createStandardHeatmap(data);
+                }
+            } else {
+                createStandardHeatmap(data);
+            }
+        }
+
+        // Heatmap estándar (fallback)
+        function createStandardHeatmap(data) {
             const trace = {
                 z: data.matriz_correlacion,
                 x: data.tickers,
@@ -483,17 +506,48 @@
                 type: 'heatmap',
                 colorscale: 'RdBu',
                 reversescale: true,
-                zmid: 0
+                zmid: 0,
+                hovertemplate: '<b>%{y} vs %{x}</b><br>Correlación: %{z:.3f}<extra></extra>',
+                colorbar: {
+                    title: 'Correlación',
+                    titleside: 'right'
+                }
             };
 
             const layout = {
-                title: `Correlación entre Activos (HHI: ${data.metricas_diversificacion.indice_hhi})`,
-                xaxis: { side: 'bottom' },
-                yaxis: { side: 'left' },
-                height: 400
+                title: {
+                    text: `Correlación entre Activos (HHI: ${data.metricas_diversificacion?.indice_hhi || 'N/A'})`,
+                    font: { size: 16 }
+                },
+                xaxis: { 
+                    side: 'bottom',
+                    tickangle: -45
+                },
+                yaxis: { 
+                    side: 'left'
+                },
+                height: 450,
+                margin: { t: 80, b: 100, l: 80, r: 50 },
+                hovermode: 'closest'
             };
 
-            Plotly.newPlot('correlation-heatmap', [trace], layout, {responsive: true});
+            const config = {
+                responsive: true,
+                displayModeBar: true,
+                modeBarButtonsToAdd: [{
+                    name: 'Drill Down',
+                    icon: Plotly.Icons.search,
+                    click: (gd) => {
+                        if (window.DynamicHeatmap) {
+                            window.dynamicHeatmap.enableDrillDown();
+                        } else {
+                            alert('Funcionalidad de drill-down no disponible');
+                        }
+                    }
+                }]
+            };
+
+            Plotly.newPlot('correlation-heatmap', [trace], layout, config);
         }
 
         // Cargar análisis de diversificación
@@ -593,7 +647,7 @@
             document.getElementById('institutional-metrics').innerHTML = html;
         }
 
-        // Cargar backtesting
+        // Cargar backtesting con drill-down mejorado
         async function cargarBacktest(data) {
             if (!data || data.error) {
                 document.getElementById('backtest-chart').innerHTML = 
@@ -601,6 +655,90 @@
                 return;
             }
 
+            // Si está disponible el módulo de drill-down, usarlo
+            if (window.DrillDownChart) {
+                try {
+                    // Preparar datos para drill-down
+                    const drillDownData = {
+                        title: `${data.estrategia.replace('_', ' ').toUpperCase()} - Performance`,
+                        labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+                        values: this.calculateQuarterlyData(data),
+                        trace: null,
+                        layout: null
+                    };
+
+                    // Limpiar contenedor
+                    document.getElementById('backtest-chart').innerHTML = '<div id="backtest-chart-container"></div>';
+                    
+                    // Crear drill-down chart
+                    window.drillDownChart = new DrillDownChart('backtest-chart-container', drillDownData);
+                    
+                    // Agregar métricas debajo
+                    setTimeout(() => {
+                        this.addBacktestMetrics(data);
+                    }, 500);
+                    
+                } catch (error) {
+                    console.warn('Error creando drill-down chart, usando versión estándar:', error);
+                    this.createStandardBacktestChart(data);
+                }
+            } else {
+                this.createStandardBacktestChart(data);
+            }
+        }
+
+        // Calcular datos trimestrales para drill-down
+        function calculateQuarterlyData(data) {
+            if (!data.fechas_sample || data.fechas_sample.length < 4) {
+                return [25, 35, 20, 20]; // Datos de ejemplo
+            }
+            
+            const quarterSize = Math.floor(data.fechas_sample.length / 4);
+            const quarters = [];
+            
+            for (let i = 0; i < 4; i++) {
+                const startIdx = i * quarterSize;
+                const endIdx = i === 3 ? data.fechas_sample.length : (i + 1) * quarterSize;
+                const quarterValues = data.valores_portfolio.slice(startIdx, endIdx);
+                const avgValue = quarterValues.reduce((sum, val) => sum + val, 0) / quarterValues.length;
+                quarters.push(Math.round(avgValue));
+            }
+            
+            return quarters;
+        }
+
+        // Agregar métricas del backtest
+        function addBacktestMetrics(data) {
+            const metricsHtml = `
+                <div class="mt-3">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <small class="text-muted">Retorno Total</small>
+                            <div class="h6 ${data.performance?.retorno_total_porcentaje > 0 ? 'text-success' : 'text-danger'}">
+                                ${data.performance?.retorno_total_porcentaje || 'N/A'}%
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted">Sharpe Ratio</small>
+                            <div class="h6">${data.performance?.sharpe_ratio || 'N/A'}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted">Max Drawdown</small>
+                            <div class="h6 text-danger">${data.performance?.max_drawdown_porcentaje || 'N/A'}%</div>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted">Win Rate</small>
+                            <div class="h6 text-info">${data.estadisticas?.win_rate_porcentaje || 'N/A'}%</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('backtest-chart-container').insertAdjacentHTML('afterend', metricsHtml);
+        }
+
+        // Gráfico de backtesting estándar (fallback)
+        function createStandardBacktestChart(data) {
             const trace = {
                 x: data.fechas_sample,
                 y: data.valores_portfolio,
@@ -618,33 +756,26 @@
                 margin: { t: 50, b: 50, l: 50, r: 50 }
             };
 
-            Plotly.newPlot('backtest-chart', [trace], layout, {responsive: true});
+            const config = {
+                responsive: true,
+                displayModeBar: true,
+                modeBarButtonsToAdd: [{
+                    name: 'Drill Down',
+                    icon: Plotly.Icons.search,
+                    click: (gd) => {
+                        if (window.DrillDownChart) {
+                            window.drillDownChart.startDrillDown();
+                        } else {
+                            alert('Funcionalidad de drill-down no disponible');
+                        }
+                    }
+                }]
+            };
 
-            // Actualizar métricas en la tarjeta
-            document.getElementById('backtest-chart').innerHTML += `
-                <div class="mt-3">
-                    <div class="row text-center">
-                        <div class="col-md-3">
-                            <small class="text-muted">Retorno Total</small>
-                            <div class="h6 ${data.performance.retorno_total_porcentaje > 0 ? 'text-success' : 'text-danger'}">
-                                ${data.performance.retorno_total_porcentaje}%
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <small class="text-muted">Sharpe Ratio</small>
-                            <div class="h6">${data.performance.sharpe_ratio}</div>
-                        </div>
-                        <div class="col-md-3">
-                            <small class="text-muted">Max Drawdown</small>
-                            <div class="h6 text-danger">${data.performance.max_drawdown_porcentaje}%</div>
-                        </div>
-                        <div class="col-md-3">
-                            <small class="text-muted">Win Rate</small>
-                            <div class="h6 text-info">${data.estadisticas.win_rate_porcentaje}%</div>
-                        </div>
-                    </div>
-                </div>
-            `;
+            Plotly.newPlot('backtest-chart', [trace], layout, config);
+
+            // Agregar métricas
+            addBacktestMetrics(data);
         }
 
         // Cargar análisis detallado
@@ -1021,9 +1152,111 @@
             }, 1000);
         }
 
-        // Función para exportar reporte
+        // Función para exportar reporte con nuevas funcionalidades
         function exportarReporte() {
-            alert('Función de exportación próximamente disponible...\n\nSe incluirá:\n- PDF con métricas completas\n- Excel con datos detallados\n- CSV para análisis externo');
+            if (window.chartExporter) {
+                // Crear modal de exportación
+                const modalHtml = `
+                    <div class="modal fade" id="exportModal" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">
+                                        <i class="fas fa-download me-2"></i>
+                                        Exportar Reportes y Gráficos
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h6>Gráficos Disponibles:</h6>
+                                            <ul class="list-unstyled small">
+                                                <li><i class="fas fa-chart-line text-success me-2"></i>Matriz de Correlación</li>
+                                                <li><i class="fas fa-chart-area text-info me-2"></i>Backtesting</li>
+                                                <li><i class="fas fa-chart-bar text-warning me-2"></i>VaR de Cartera</li>
+                                                <li><i class="fas fa-chart-pie text-primary me-2"></i>Diversificación</li>
+                                            </ul>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6>Formatos Disponibles:</h6>
+                                            <ul class="list-unstyled small">
+                                                <li><i class="fas fa-image text-primary me-2"></i>PNG (Imágenes)</li>
+                                                <li><i class="fas fa-file-pdf text-danger me-2"></i>PDF (Reportes)</li>
+                                                <li><i class="fas fa-code text-success me-2"></i>SVG (Vector)</li>
+                                                <li><i class="fas fa-file-code text-info me-2"></i>HTML (Interactivo)</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="alert alert-info mt-3">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Los botones de exportación aparecen en la esquina superior derecha de cada gráfico.
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                    <button type="button" class="btn btn-primary" onclick="exportAllCharts()">
+                                        <i class="fas fa-download me-1"></i>Exportar Todo
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Remover modal anterior si existe
+                const existingModal = document.getElementById('exportModal');
+                if (existingModal) {
+                    existingModal.remove();
+                }
+                
+                // Agregar nuevo modal
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+                
+                // Mostrar modal
+                const modal = new bootstrap.Modal(document.getElementById('exportModal'));
+                modal.show();
+                
+            } else {
+                // Fallback para cuando no están disponibles los módulos
+                alert('Funcionalidad de exportación próximamente disponible...\n\nSe incluirá:\n- PDF con métricas completas\n- Excel con datos detallados\n- CSV para análisis externo');
+            }
+        }
+
+        // Función para exportar todos los gráficos
+        function exportAllCharts() {
+            const chartIds = ['correlation-heatmap', 'backtest-chart', 'portfolio-var-chart'];
+            const formats = ['png', 'pdf'];
+            
+            chartIds.forEach(chartId => {
+                if (document.getElementById(chartId)) {
+                    formats.forEach(format => {
+                        setTimeout(() => {
+                            if (window.chartExporter) {
+                                window.chartExporter.exportChart(chartId, format);
+                            }
+                        }, Math.random() * 1000); // Pequeño delay para evitar conflictos
+                    });
+                }
+            });
+            
+            // Cerrar modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
+            modal.hide();
+            
+            // Mostrar notificación
+            setTimeout(() => {
+                const notification = document.createElement('div');
+                notification.className = 'alert alert-success position-fixed';
+                notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+                notification.innerHTML = `
+                    <i class="fas fa-check-circle me-2"></i>
+                    Exportación iniciada. Los archivos se descargarán automáticamente.
+                `;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => notification.remove(), 5000);
+            }, 1000);
         }
 
         // Función para mostrar errores
@@ -1038,8 +1271,18 @@
             `;
         }
 
-        // Inicializar dashboard
+        // Inicializar dashboard con funcionalidades avanzadas
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Inicializando Dashboard Avanzado con Visualizaciones Interactivas...');
+            
+            // Verificar disponibilidad de módulos de visualización
+            if (window.VisualizationModules) {
+                console.log('✅ Módulos de visualización disponibles:', Object.keys(window.VisualizationModules));
+            } else {
+                console.warn('⚠️ Módulos de visualización no disponibles, usando funcionalidad estándar');
+            }
+            
+            // Cargar análisis principal
             cargarAnalisisAvanzado();
             
             // Cargar VaR de cartera por defecto después de cargar análisis
@@ -1047,8 +1290,30 @@
                 cargarPortfolioVar();
             }, 2000);
             
+            // Inicializar exportación de gráficos cuando estén listos los módulos
+            setTimeout(() => {
+                if (window.chartExporter) {
+                    console.log('✅ Sistema de exportación inicializado');
+                }
+            }, 3000);
+            
             // Actualizar cada 10 minutos
             setInterval(cargarAnalisisAvanzado, 600000);
+            
+            // Agregar listener para recalcular visualizaciones cuando cambie el tamaño de ventana
+            let resizeTimeout;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    if (typeof Plotly !== 'undefined') {
+                        Plotly.Plots.resize('correlation-heatmap');
+                        Plotly.Plots.resize('backtest-chart');
+                        Plotly.Plots.resize('portfolio-var-chart');
+                    }
+                }, 300);
+            });
+            
+            console.log('✨ Dashboard inicializado exitosamente');
         });
     </script>
 </body>

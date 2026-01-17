@@ -1,0 +1,236 @@
+# ==============================================================================
+# CONFIGURACIÓN DE ALERTMANAGER
+# Gestión de Alertas - Cartera Financiera
+# ==============================================================================
+
+global:
+  # Configuración SMTP para emails
+  smtp_smarthost: "localhost:587"
+  smtp_from: "alerts@cartera-financiera.local"
+  smtp_auth_username: "alerts@cartera-financiera.local"
+  smtp_auth_password: "${SMTP_PASSWORD}"
+
+  # Slack webhook
+  slack_api_url: "${SLACK_WEBHOOK_URL}"
+
+# ==================== ROUTES ====================
+route:
+  group_by: ["alertname", "cluster", "service"]
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: "default"
+
+  routes:
+    # Alertas críticas - Notificación inmediata
+    - match:
+        severity: critical
+      receiver: "critical-alerts"
+      group_wait: 0s
+      repeat_interval: 15m
+
+    # Alertas de base de datos
+    - match:
+        service: database
+      receiver: "database-team"
+      group_interval: 5m
+
+    # Alertas de seguridad
+    - match:
+        service: security
+      receiver: "security-team"
+      group_interval: 2m
+
+    # Alertas de aplicación financiera
+    - match:
+        service: financial
+      receiver: "finance-team"
+      group_interval: 5m
+
+    # Alertas de infraestructura
+    - match:
+        service: infrastructure
+      receiver: "ops-team"
+      group_interval: 10m
+
+# ==================== RECEIVERS ====================
+receivers:
+  # Receptor por defecto
+  - name: "default"
+    email_configs:
+      - to: "${DEFAULT_ALERT_EMAIL}"
+        subject: "[Cartera Financiera] Alerta: {{ .GroupLabels.alertname }}"
+        body: |
+          {{ range .Alerts }}
+          Alerta: {{ .Annotations.summary }}
+          Descripción: {{ .Annotations.description }}
+          Severidad: {{ .Labels.severity }}
+          Servicio: {{ .Labels.service }}
+          Instancia: {{ .Labels.instance }}
+          Tiempo: {{ .StartsAt }}
+          {{ end }}
+
+  # Alertas críticas - Múltiples canales
+  - name: "critical-alerts"
+    email_configs:
+      - to: "${CRITICAL_ALERT_EMAIL}"
+        subject: "[CRÍTICO] Cartera Financiera - {{ .GroupLabels.alertname }}"
+        body: |
+          🚨 ALERTA CRÍTICA - CARTERA FINANCIERA 🚨
+
+          {{ range .Alerts }}
+          📊 Alerta: {{ .Annotations.summary }}
+          📝 Descripción: {{ .Annotations.description }}
+          ⚠️  Severidad: {{ .Labels.severity }}
+          🔧 Servicio: {{ .Labels.service }}
+          💻 Instancia: {{ .Labels.instance }}
+          ⏰ Tiempo: {{ .StartsAt }}
+
+          Labels: {{ range .Labels.SortedPairs }} - {{ .Name }}: {{ .Value }}{{ end }}
+          {{ end }}
+
+          🔗 Dashboard Grafana: http://grafana.cartera.local
+          📊 Prometheus: http://prometheus.cartera.local
+          🚨 Alertmanager: http://alertmanager.cartera.local
+    slack_configs:
+      - channel: "#alerts-critical"
+        title: "🚨 Alerta Crítica - Cartera Financiera"
+        text: |
+          {{ range .Alerts }}
+          *Alerta:* {{ .Annotations.summary }}
+          *Descripción:* {{ .Annotations.description }}
+          *Severidad:* {{ .Labels.severity }}
+          *Servicio:* {{ .Labels.service }}
+          *Instancia:* {{ .Labels.instance }}
+          {{ end }}
+        send_resolved: true
+
+  # Equipo de base de datos
+  - name: "database-team"
+    email_configs:
+      - to: "${DB_TEAM_EMAIL}"
+        subject: "[DB] Alerta Base de Datos - {{ .GroupLabels.alertname }}"
+        body: |
+          🗄️  ALERTA DE BASE DE DATOS
+
+          {{ range .Alerts }}
+          📊 Alerta: {{ .Annotations.summary }}
+          📝 Descripción: {{ .Annotations.description }}
+          ⚠️  Severidad: {{ .Labels.severity }}
+          💾 Instancia: {{ .Labels.instance }}
+          ⏰ Tiempo: {{ .StartsAt }}
+          {{ end }}
+
+  # Equipo de seguridad
+  - name: "security-team"
+    email_configs:
+      - to: "${SECURITY_TEAM_EMAIL}"
+        subject: "[SECURITY] Alerta de Seguridad - {{ .GroupLabels.alertname }}"
+        body: |
+          🔒 ALERTA DE SEGURIDAD - CARTERA FINANCIERA
+
+          {{ range .Alerts }}
+          🚨 Alerta: {{ .Annotations.summary }}
+          📝 Descripción: {{ .Annotations.description }}
+          ⚠️  Severidad: {{ .Labels.severity }}
+          🔧 Servicio: {{ .Labels.service }}
+          💻 Instancia: {{ .Labels.instance }}
+          ⏰ Tiempo: {{ .StartsAt }}
+          {{ end }}
+
+          🔗 Ver alertas: http://alertmanager.cartera.local
+    slack_configs:
+      - channel: "#security-alerts"
+        title: "🔒 Alerta de Seguridad"
+        text: |
+          {{ range .Alerts }}
+          *Alerta:* {{ .Annotations.summary }}
+          *Descripción:* {{ .Annotations.description }}
+          *Severidad:* {{ .Labels.severity }}
+          {{ end }}
+        send_resolved: true
+
+  # Equipo financiero
+  - name: "finance-team"
+    email_configs:
+      - to: "${FINANCE_TEAM_EMAIL}"
+        subject: "[FINANCE] Alerta Aplicación Financiera - {{ .GroupLabels.alertname }}"
+        body: |
+          💰 ALERTA DE APLICACIÓN FINANCIERA
+
+          {{ range .Alerts }}
+          📊 Alerta: {{ .Annotations.summary }}
+          📝 Descripción: {{ .Annotations.description }}
+          ⚠️  Severidad: {{ .Labels.severity }}
+          💼 Servicio: {{ .Labels.service }}
+          💻 Instancia: {{ .Labels.instance }}
+          ⏰ Tiempo: {{ .StartsAt }}
+          {{ end }}
+
+  # Equipo de operaciones
+  - name: "ops-team"
+    email_configs:
+      - to: "${OPS_TEAM_EMAIL}"
+        subject: "[OPS] Alerta de Infraestructura - {{ .GroupLabels.alertname }}"
+        body: |
+          ⚙️  ALERTA DE INFRAESTRUCTURA
+
+          {{ range .Alerts }}
+          📊 Alerta: {{ .Annotations.summary }}
+          📝 Descripción: {{ .Annotations.description }}
+          ⚠️  Severidad: {{ .Labels.severity }}
+          🖥️  Instancia: {{ .Labels.instance }}
+          ⏰ Tiempo: {{ .StartsAt }}
+          {{ end }}
+
+  # Webhook para integración con sistemas externos
+  - name: "webhook-integration"
+    webhook_configs:
+      - url: "${WEBHOOK_URL}"
+        send_resolved: true
+        title: "Cartera Financiera Alert"
+        text: "{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}"
+
+# ==================== INHIBITION RULES ====================
+inhibit_rules:
+  # Inhibir alertas menos críticas cuando hay alertas críticas
+  - source_match:
+      severity: "critical"
+    target_match:
+      severity: "warning"
+    equal: ["alertname", "cluster", "service"]
+
+  # Inhibir alertas de infraestructura cuando toda la instancia está down
+  - source_match:
+      alertname: "InstanceDown"
+    target_match_re:
+      alertname: "(HighCPUUsage|HighMemoryUsage|HighDiskUsage)"
+    equal: ["instance"]
+
+# ==================== TEMPLATES ====================
+templates:
+  - "/etc/alertmanager/templates/*.tmpl"
+# ==================== CONFIGURACIÓN DE SILENCIOS ====================
+# Los silencios se pueden gestionar vía API o interfaz web
+# Ejemplo de silencio:
+# amtool silence add --author admin --comment "Mantenimiento programado" alertname=InstanceDown
+
+# ==================== CONFIGURACIÓN DE ENRUTAMIENTO AVANZADO ====================
+# Enrutamiento por horario de oficina (ejemplo)
+# time_intervals:
+#   - name: business_hours
+#     time_intervals:
+#       - times:
+#           - start_time: '09:00'
+#             end_time: '17:00'
+#         weekdays: ['monday:friday']
+#         location: 'America/Argentina/Buenos_Aires'
+#
+# Luego se puede usar en las rutas:
+#   - match:
+#       service: critical
+#     route:
+#       receiver: 'business-hours-critical'
+#       group_interval: 5m
+#       repeat_interval: 1h
+#     continue: true

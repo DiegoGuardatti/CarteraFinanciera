@@ -1,0 +1,304 @@
+# ==============================================================================
+# REGLAS DE ALERTAS - CARTERA FINANCIERA
+# Prometheus Alerting Rules
+# ==============================================================================
+
+groups:
+  # ==================== ALERTAS DE INFRAESTRUCTURA ====================
+  - name: infrastructure
+    rules:
+      # Alerta cuando el servidor está fuera de línea
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: infrastructure
+        annotations:
+          summary: "Instance {{ $labels.instance }} is down"
+          description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute."
+
+      # Alta utilización de CPU
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is above 80% for more than 5 minutes on {{ $labels.instance }}."
+
+      # Alta utilización de memoria
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is above 85% for more than 5 minutes on {{ $labels.instance }}."
+
+      # Espacio en disco bajo
+      - alert: LowDiskSpace
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes * 100) < 15
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Disk space is below 15% on {{ $labels.instance }} mount {{ $labels.mountpoint }}."
+
+  # ==================== ALERTAS DE BASE DE DATOS ====================
+  - name: database
+    rules:
+      # MySQL no disponible
+      - alert: MySQLDown
+        expr: mysql_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "MySQL database is down"
+          description: "MySQL database has been down for more than 1 minute."
+
+      # Muchas conexiones MySQL
+      - alert: MySQLTooManyConnections
+        expr: mysql_global_status_threads_connected / mysql_global_variables_max_connections * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "MySQL has too many connections"
+          description: "MySQL has {{ $value }}% of max connections in use."
+
+      # Queries lentas en MySQL
+      - alert: MySQLSlowQueries
+        expr: rate(mysql_global_status_slow_queries[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "MySQL has slow queries"
+          description: "MySQL is receiving {{ $value }} slow queries per second."
+
+  # ==================== ALERTAS DE REDIS ====================
+  - name: redis
+    rules:
+      # Redis no disponible
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: cache
+        annotations:
+          summary: "Redis cache is down"
+          description: "Redis cache has been down for more than 1 minute."
+
+      # Alto uso de memoria Redis
+      - alert: RedisHighMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          service: cache
+        annotations:
+          summary: "Redis memory usage is high"
+          description: "Redis is using {{ $value }}% of available memory."
+
+      # Muchas conexiones Redis
+      - alert: RedisTooManyConnections
+        expr: redis_connected_clients > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: cache
+        annotations:
+          summary: "Redis has too many connections"
+          description: "Redis has {{ $value }} active connections."
+
+  # ==================== ALERTAS DE APLICACIÓN WEB ====================
+  - name: web application
+    rules:
+      # Aplicación no disponible
+      - alert: WebApplicationDown
+        expr: probe_success == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: web application
+        annotations:
+          summary: "Web application is down"
+          description: "Web application {{ $labels.instance }} is not responding to health checks."
+
+      # Alto tiempo de respuesta
+      - alert: HighResponseTime
+        expr: probe_duration_seconds > 2
+        for: 3m
+        labels:
+          severity: warning
+          service: web application
+        annotations:
+          summary: "High response time on {{ $labels.instance }}"
+          description: "Response time is {{ $value }}s for more than 3 minutes."
+
+      # Tasa de errores HTTP alta
+      - alert: HighHTTPErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) * 100 > 5
+        for: 5m
+        labels:
+          severity: critical
+          service: web application
+        annotations:
+          summary: "High HTTP error rate on {{ $labels.instance }}"
+          description: "HTTP error rate is {{ $value }}% for more than 5 minutes."
+
+  # ==================== ALERTAS ESPECÍFICAS DE CARTERA FINANCIERA ====================
+  - name: financial application
+    rules:
+      # APIs de métricas no disponibles
+      - alert: MetricsAPIDown
+        expr: probe_success{instance=~".*api.*"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: financial API
+        annotations:
+          summary: "Financial metrics API is down"
+          description: "API endpoint {{ $labels.instance }} is not responding."
+
+      # Dashboard no disponible
+      - alert: DashboardDown
+        expr: probe_success{instance=~".*dashboard.*"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: dashboard
+        annotations:
+          summary: "Financial dashboard is down"
+          description: "Dashboard {{ $labels.instance }} is not accessible."
+
+      # Errores en cálculos de métricas financieras
+      - alert: FinancialCalculationErrors
+        expr: rate(flask_http_request_total{status="500"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          service: financial calculations
+        annotations:
+          summary: "High error rate in financial calculations"
+          description: "Financial calculation endpoints are returning 500 errors at rate {{ $value }} per second."
+
+      # Conexiones de base de datos altas (indicativo de problemas de performance)
+      - alert: DatabaseConnectionPoolExhaustion
+        expr: mysql_global_status_threads_connected / mysql_global_variables_max_connections * 100 > 75
+        for: 10m
+        labels:
+          severity: warning
+          service: database performance
+        annotations:
+          summary: "Database connection pool near exhaustion"
+          description: "Database connection usage is at {{ $value }}%, may indicate performance issues."
+
+      # Backup fallido
+      - alert: BackupFailed
+        expr: time() - file_modified_timestamp{job="backup-script"} > 86400
+        for: 1h
+        labels:
+          severity: critical
+          service: backup
+        annotations:
+          summary: "Backup has not completed in 24 hours"
+          description: "Backup process has not completed successfully in the last 24 hours."
+
+  # ==================== ALERTAS DE SEGURIDAD ====================
+  - name: security
+    rules:
+      # Intentos de login fallidos altos
+      - alert: HighFailedLoginAttempts
+        expr: rate(flask_http_request_total{endpoint="/login",status="401"}[5m]) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "High rate of failed login attempts"
+          description: "Failed login rate is {{ $value }} per second, potential brute force attack."
+
+      # Errores de autenticación
+      - alert: AuthenticationErrors
+        expr: rate(flask_http_request_total{status=~"401|403"}[5m]) / rate(flask_http_request_total[5m]) * 100 > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "High authentication error rate"
+          description: "Authentication error rate is {{ $value }}% for more than 5 minutes."
+
+  # ==================== ALERTAS DE CAPACIDAD ====================
+  - name: capacity
+    rules:
+      # Predicción de espacio en disco
+      - alert: DiskSpaceWillFillSoon
+        expr: predict_linear(node_filesystem_avail_bytes[1h], 4*3600) < 0
+        for: 30m
+        labels:
+          severity: warning
+          service: capacity
+        annotations:
+          summary: "Disk space will fill in 4 hours"
+          description: "Disk space on {{ $labels.instance }} mount {{ $labels.mountpoint }} is predicted to fill in 4 hours."
+
+      # Predicción de memoria
+      - alert: MemoryWillFillSoon
+        expr: predict_linear(node_memory_MemAvailable_bytes[1h], 4*3600) < 0
+        for: 30m
+        labels:
+          severity: warning
+          service: capacity
+        annotations:
+          summary: "Memory will be exhausted in 4 hours"
+          description: "Available memory on {{ $labels.instance }} is predicted to be exhausted in 4 hours."
+
+  # ==================== ALERTAS DE NEGOCIO ====================
+  - name: business
+    rules:
+      # Sin transacciones en período normal
+      - alert: NoTransactionsDetected
+        expr: rate(transaction_count_total[1h]) == 0
+        for: 2h
+        labels:
+          severity: warning
+          service: business logic
+        annotations:
+          summary: "No financial transactions detected"
+          description: "No financial transactions have been processed in the last 2 hours."
+
+      # Error en cálculos de cartera
+      - alert: PortfolioCalculationErrors
+        expr: rate(flask_http_request_total{endpoint=~".*portfolio.*",status="500"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: portfolio calculations
+        annotations:
+          summary: "High error rate in portfolio calculations"
+          description: "Portfolio calculation endpoints are failing at rate {{ $value }} per second."
+
+      # API de métricas de riesgo no disponible
+      - alert: RiskMetricsAPIDown
+        expr: probe_success{instance=~".*risk.*"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: risk metrics
+        annotations:
+          summary: "Risk metrics API is down"
+          description: "Risk metrics API {{ $labels.instance }} is not responding, VaR and Monte Carlo calculations unavailable."
