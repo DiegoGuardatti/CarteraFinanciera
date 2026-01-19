@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "fecha_generacion": "2025-12-28T13:52:15.056820",
+    "fecha_generacion": "2026-01-17T23:39:39.684678",
     "total_operaciones": 18,
     "total_transferencias": 0,
     "total_tickers": 3
@@ -10,13 +10,13 @@
     "operaciones_activas": 10,
     "operaciones_vendidas": 8,
     "total_invertido_usd": 10424.87779,
-    "total_vendido_usd": 4675.0578,
+    "total_vendido_usd": 4675.0578000000005,
     "total_dividendos": 0,
     "transferencias_entrada": 0,
     "transferencias_salida": 0,
     "total_mep_entradas_usd": 0,
     "total_mep_salidas_usd": 0,
-    "ganancia_perdida_total_usd": -5749.819990000001
+    "ganancia_perdida_total_usd": -5749.81999
   },
   "por_ticker": {
     "S29G5": {
@@ -57,9 +57,9 @@
       "total_vendido_usd": 4675.0578000000005,
       "dividendos": 0,
       "tickers_unicos": [
-        "VARIAS",
         "S29G5",
-        "S30S5"
+        "S30S5",
+        "VARIAS"
       ],
       "num_tickers": 3,
       "rentabilidad_usd": -5749.81999,

@@ -13,8 +13,9 @@ from sistema_mineria import MineriaDatosFinancieros
 # Añadir el directorio actual al path para importar la aplicación Flask
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app import create_flask_app
-from modelo import db, Broker, Comitente, InstrumentoFinanciero, Ticker, Activo
+from app import create_app
+from extensions import db
+from modelo import Broker, Comitente, InstrumentoFinanciero, Ticker, Activo
 
 class PobladorBaseDatos:
     def __init__(self):
@@ -24,7 +25,7 @@ class PobladorBaseDatos:
 
     def inicializar_app(self):
         """Inicializa la aplicación Flask y contexto de BD"""
-        app_tuple = create_flask_app()
+        app_tuple = create_app()
         self.app = app_tuple[0]  # Extraer solo la app Flask de la tupla
         self.app.app_context().push()
         print("✅ Aplicación Flask inicializada")

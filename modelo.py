@@ -1,6 +1,5 @@
-from flask_sqlalchemy import SQLAlchemy
-
-db = SQLAlchemy()
+#from flask_sqlalchemy import SQLAlchemy
+from extensions import db
 
 class Broker(db.Model):
     __tablename__ = 'broker'
