@@ -199,7 +199,8 @@ def check_database_health():
     """Verificar salud de la base de datos"""
     try:
         start_time = time.time()
-        db.session.execute('SELECT 1')
+        from sqlalchemy import text
+        db.session.execute(text('SELECT 1'))
         response_time = (time.time() - start_time) * 1000  # en ms
         
         return {
@@ -217,10 +218,16 @@ def check_database_health():
 def check_cache_health():
     """Verificar salud del cache Redis"""
     try:
+        # Importar cache desde la aplicación Flask creada
+        from app import cache
+        
         if cache:
             start_time = time.time()
-            cache.set('health_check', 'ok', timeout=10)
-            result = cache.get('health_check')
+            # Necesitamos un contexto de aplicación para usar el cache
+            from app import app
+            with app.app_context():
+                cache.set('health_check', 'ok', timeout=10)
+                result = cache.get('health_check')
             response_time = (time.time() - start_time) * 1000
             
             return {

@@ -39,6 +39,10 @@ class DevelopmentConfig(Config):
     
     # Logging más detallado en desarrollo
     LOG_LEVEL = 'DEBUG'
+    
+    # Forzar uso de MySQL en entorno de Docker
+    import os
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'mysql+pymysql://cartera_user:RootDevPass123!@db:3306/CarteraFinanciera'
 
 class ProductionConfig(Config):
     """Configuración para producción"""
