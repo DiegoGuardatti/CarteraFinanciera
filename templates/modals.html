@@ -1,16 +1,15 @@
 
 <!-- Modal Registro Broker-->
-<div class="modal fade" id="brokerModal" tabindex="-1" role="dialog" aria-labelledby="brokerModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
+<div class="modal fade" id="brokerModal" tabindex="-1" aria-labelledby="brokerModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="brokerModalLabel">Registrar Broker</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">×</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form method="POST" action="/registrar_broker">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="form-group">
                         <label for="Nombre_broker">Broker</label>
                         <input type="text" class="form-control" id="Nombre_broker" name="Nombre_broker" required>
@@ -31,17 +30,16 @@
 </div>
 
 <!-- Modal Registro Comitente -->
-<div class="modal fade" id="comitenteModal" tabindex="-1" role="dialog" aria-labelledby="comitenteModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
+<div class="modal fade" id="comitenteModal" tabindex="-1" aria-labelledby="comitenteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="comitenteModalLabel">Registrar Comitente</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">×</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form method="POST" action="/registrar_comitente">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="form-group">
                         <label for="Id_Broker">Broker</label>
                         <select class="form-select shadow-sm" id="Id_Broker" name="Id_Broker" required>
@@ -52,12 +50,12 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="Titular_comitente">Titular</label>
-                        <input type="text" class="form-control" id="Titular_comitente" name="Titular_comitente" required>
+                        <label for="Titular">Titular</label>
+                        <input type="text" class="form-control" id="Titular" name="Titular" required>
                     </div>
                     <div class="form-group">
-                        <label for="Numero_comitente">Número Comitente</label>
-                        <input type="text" class="form-control" id="Numero_comitente" name="Numero_comitente" required>
+                        <label for="Numero">Número Comitente</label>
+                        <input type="number" class="form-control" id="Numero" name="Numero" required>
                     </div>
                     <button type="submit" class="btn btn-primary">Enviar</button>
                 </form>
@@ -76,6 +74,7 @@
             </div>
             <div class="modal-body">
                 <form method="POST" action="/registrar_InstrumentoFinanciero">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-3">
                         <label for="Nombre_InstrumentoFinanciero" class="form-label">Nombre del Instrumento</label>
                         <input type="text" class="form-control" id="Nombre_InstrumentoFinanciero" name="Nombre_InstrumentoFinanciero" oninput="this.value = this.value.toUpperCase()" required>
@@ -99,13 +98,14 @@
             </div>
             <div class="modal-body">
                 <form id="formRegistrarTicker">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="form-group">
                         <label for="nuevoTicker">Ticker del Instrumento</label>
                         <input type="text" class="form-control" id="nuevoTicker" name="nuevoTicker" oninput="this.value = this.value.toUpperCase()" required>
                     </div>
                     <div class="form-group">
-                        <label for="modaldescripcionTicker">Descripción del Ticker</label>
-                        <input type="text" class="form-control" id="modaldescripcionTicker" name="modaldescripcionTicker" required>
+                        <label for="Descripcion">Descripción del Ticker</label>
+                        <input type="text" class="form-control" id="Descripcion" name="Descripcion" required>
                     </div>
                     <div class="form-group">
                         <label for="selectInstrumento">Seleccionar Instrumento Financiero</label>
@@ -134,6 +134,7 @@
             </div>
             <div class="modal-body">
                 <form id="ventaForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="Id_Activo" id="Id_Activo">
 
                     <div class="mb-3">
@@ -209,15 +210,16 @@
         event.preventDefault();
 
         const ticker = document.getElementById('nuevoTicker').value.trim().toUpperCase();
-        const descripcion = document.getElementById('modaldescripcionTicker').value.trim();
+        const descripcion = document.getElementById('Descripcion').value.trim();
         const instrumento = document.getElementById('selectInstrumento').value;
 
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
         fetch('/validar_ticker', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: `nuevoTicker=${ticker}`
+            body: `nuevoTicker=${ticker}&csrf_token=${csrfToken}`
         })
         .then(response => response.json())
         .then(data => {
@@ -229,7 +231,7 @@
                 setTimeout(() => {
                     document.getElementById('tickerError').style.display = 'none';
                     document.getElementById('nuevoTicker').value = '';
-                    document.getElementById('modaldescripcionTicker').value = '';
+                    document.getElementById('Descripcion').value = '';
                     document.getElementById('selectInstrumento').value = '';
                 }, 3000); // 5000 ms = 5 segundos
             } else {
@@ -241,13 +243,13 @@
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
-                    body: `nuevoTicker=${ticker}&modaldescripcionTicker=${descripcion}&selectInstrumento=${instrumento}`
+                    body: `nuevoTicker=${ticker}&Descripcion=${descripcion}&selectInstrumento=${instrumento}&csrf_token=${csrfToken}`
                 })
                 .then(response => {
                     if (response.ok) {
                         // Limpiar los campos después de enviar correctamente
                         document.getElementById('nuevoTicker').value = '';
-                        document.getElementById('modaldescripcionTicker').value = '';
+                        document.getElementById('Descripcion').value = '';
                         document.getElementById('selectInstrumento').value = '';
                         $('#TickerModal').modal('hide'); // Ocultar el modal
                         window.location.href = '/compra'; // Redireccionar a la página de compra

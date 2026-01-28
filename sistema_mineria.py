@@ -235,49 +235,81 @@ class MineriaDatosFinancieros:
         """Parsea operaciones financieras desde texto de PDF"""
         operaciones = []
 
-        # Patrones comunes en PDFs de brokers argentinos
-        patrones_operaciones = [
-            # Patrón para compras: "Compra GGAL 100 acciones a $1500.50"
-            r'(?i)compra\s+(\w+)\s+(\d+(?:[.,]\d+)?)\s+(?:acciones?|nominales?)\s+a\s+\$?([\d.,]+)',
-
-            # Patrón para ventas: "Venta TSLA 50 CEDEARs a $250.75"
-            r'(?i)venta\s+(\w+)\s+(\d+(?:[.,]\d+)?)\s+(?:acciones?|nominales?|cedears?|bonos?|ons?)\s+a\s+\$?([\d.,]+)',
-
-            # Patrón con fechas: "15/12/2023 Compra AAPL 200 acciones $180.50"
-            r'(\d{1,2}/\d{1,2}/\d{4})\s+(?i)compra\s+(\w+)\s+(\d+(?:[.,]\d+)?)\s+(?:acciones?|nominales?)\s+\$?([\d.,]+)',
-
-            # Patrón con tipo de activo específico
-            r'(?i)(acción|bono|cedear|on)\s+(\w+)\s+(\d+(?:[.,]\d+)?)\s+(?:acciones?|nominales?)\s+a\s+\$?([\d.,]+)',
-        ]
-
-        # Patrones para fechas
-        patrones_fechas = [
-            r'(\d{1,2}/\d{1,2}/\d{4})',  # dd/mm/yyyy
-            r'(\d{1,2}-\d{1,2}-\d{4})',  # dd-mm-yyyy
-            r'fecha:?\s*(\d{1,2}/\d{1,2}/\d{4})',  # "fecha: 15/12/2023"
-        ]
-
-        # Buscar fechas en el documento
-        fechas_encontradas = []
-        for patron_fecha in patrones_fechas:
-            matches = re.findall(patron_fecha, texto_pdf)
-            fechas_encontradas.extend(matches)
-
-        fecha_default = fechas_encontradas[0] if fechas_encontradas else None
-
-        # Procesar cada patrón de operación
-        for patron in patrones_operaciones:
-            matches = re.findall(patron, texto_pdf)
-
-            for match in matches:
-                try:
-                    operacion = self._procesar_match_pdf(match, fecha_default, fuente_pdf)
-                    if operacion:
-                        operaciones.append(operacion)
-
-                except Exception as e:
-                    print(f"Error procesando match PDF: {match} - {e}")
-
+        # Formato de cuenta corriente bursátil argentino (columnas):
+        # F.Liquid Cpbt N.Cpbt Importe Dolares Mda Ref./Cantidad
+        # 14/08/19 LRFD 77151 927.65- 73.9300- RIGAH
+        # 15/08/19 LRFD 77038 1,255.23- 136.1000- TTRTF
+        # 03/01/23 VTAS 3006564 11,061.82- 20.0000- BMA
+        
+        print("📄 Analizando formato de cuenta corriente...")
+        
+        # Patrón para lineas de operaciones en formato tabular
+        patron_cuenta_corriente = r'(\d{2}/\d{2}/\d{2})\s+(\w{4})\s+\d+\s+([\d.,]+-?)\s+([\d.,]+-?)\s+(\w+)'
+        
+        matches = re.findall(patron_cuenta_corriente, texto_pdf)
+        
+        print(f"✅ Encontrados {len(matches)} potenciales operaciones en el PDF")
+        
+        for match in matches:
+            try:
+                fecha_str, tipo_operacion, importe_str, precio_str, ticker = match
+                
+                # Filtrar operaciones inválidas
+                if tipo_operacion in ['LRFD', 'CDOA', 'CCDO', 'VTCT']:
+                    continue
+                if ticker in ['VARIA', 'CREDITO']:
+                    continue
+                
+                # Convertir fecha (2-digit year to 4-digit)
+                fecha = datetime.strptime(f"{fecha_str[:6]}20{fecha_str[6:]}", "%d/%m/%Y").date()
+                
+                # Limpiar valores
+                importe = self._limpiar_numero(importe_str)
+                precio = self._limpiar_numero(precio_str)
+                ticker = ticker.strip().upper()
+                
+                # Filtrar valores inválidos
+                if importe <= 0 or precio <= 0:
+                    continue
+                
+                # Determinar si es compra o venta
+                es_compra = importe_str.endswith('-')
+                
+                # Calcular cantidad
+                cantidad = importe / precio
+                
+                # Determinar tipo de activo
+                tipo_activo = self._determinar_tipo_por_especie(ticker)
+                
+                operacion = {
+                    'id_operacion': self.id_counter,
+                    'tipo_activo': tipo_activo,
+                    'ticker': ticker,
+                    'fecha_compra': fecha if es_compra else None,
+                    'precio_compra_ars': precio if es_compra else None,
+                    'cantidad': cantidad,
+                    'total_pesos_compra': importe if es_compra else 0,
+                    'dolar_mep_compra': 1000,  # Valor por defecto
+                    'fecha_venta': fecha if not es_compra else None,
+                    'precio_venta_ars': precio if not es_compra else None,
+                    'total_pesos_venta': importe if not es_compra else 0,
+                    'total_usd_compra': importe / 1000 if es_compra else 0,
+                    'total_usd_venta': importe / 1000 if not es_compra else 0,
+                    'condicion': 'VENDIDO' if not es_compra else 'EN_CARTERA',
+                    'fuente': 'PDF',
+                    'archivo_pdf': os.path.basename(fuente_pdf)
+                }
+                
+                self.operaciones.append(operacion)
+                self.tickers[ticker] = tipo_activo
+                self.id_counter += 1
+                
+                print(f"   • {tipo_operacion} - {ticker}: {cantidad:.2f} @ ${precio:.2f}")
+                
+            except Exception as e:
+                print(f"❌ Error procesando operación: {match} - {e}")
+                continue
+                
         return operaciones
 
     def _procesar_match_pdf(self, match, fecha_default, fuente_pdf):
