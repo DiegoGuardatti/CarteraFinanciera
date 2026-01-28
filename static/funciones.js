@@ -376,11 +376,15 @@ async function updateTickers(instrumentoId, loadingElement = 'tickernombre') {
     
     if (!tickerSelect) return;
 
-    // Limpiar campos
+    // Solo limpiar campos si se proporciona un instrumentoId válido
+    if (!instrumentoId) {
+        // Si no hay instrumento seleccionado, mantener las opciones iniciales
+        return;
+    }
+
+    // Limpiar campos solo si hay un instrumentoId válido
     tickerSelect.innerHTML = '<option value="">Seleccionar...</option>';
     if (descripcionInput) descripcionInput.value = '';
-    
-    if (!instrumentoId) return;
 
     try {
         loadingManager.show(loadingElement, 'Cargando tickers...');

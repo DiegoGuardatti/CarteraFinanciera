@@ -54,7 +54,10 @@
             <span class="text-danger" aria-label="obligatorio">*</span>
         </label>
         <select class="form-select form-select-lg shadow-sm" id="tickernombre" name="Id_Ticker" required>
-            <!-- Se llena dinámicamente -->
+            <option value="">Seleccionar ticker...</option>
+            {% for ticker in tickers %}
+            <option value="{{ ticker.Id_Ticker }}">{{ ticker.Nombre_Ticker }} - {{ ticker.Descripcion }}</option>
+            {% endfor %}
         </select>
     </div>
 </div>
@@ -117,6 +120,7 @@
             <div class="modal-body">
                 <form id="ventaForm">
                     <input type="hidden" name="Id_Activo" id="Id_Activo">
+                    <input type="hidden" name="csrf_token" id="csrf_token" value="{{ csrf_token() }}">
 
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -166,13 +170,16 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     <i class="fas fa-times me-1"></i>Cancelar
                 </button>
-                <button type="submit" form="ventaForm" class="btn btn-primary">
+                <button type="submit" form="ventaForm" id="ventaSubmitBtn" class="btn btn-primary">
                     <i class="fas fa-save me-1"></i>Registrar Venta
                 </button>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Container para toasts -->
+<div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
 
 <script>
     // JavaScript mínimo usando las funciones de funciones.js
@@ -181,10 +188,15 @@
         const brokerSelect = document.getElementById('Broker');
         if (brokerSelect) {
             brokerSelect.addEventListener('change', function() {
+                console.log('Broker seleccionado:', this.value);
                 if (typeof updateComitentes === 'function') {
                     updateComitentes(this.value);
+                } else {
+                    console.error('updateComitentes no está definida');
                 }
             });
+        } else {
+            console.error('No se encontró el elemento Broker');
         }
 
         // Configurar eventos para instrumento
@@ -308,31 +320,49 @@
                     Total_Dolares_Venta: document.getElementById('totalDolaresVenta')?.value
                 };
 
-                const submitBtn = this.querySelector('button[type="submit"]');
-                const originalText = submitBtn.innerHTML;
-                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Procesando...';
-                submitBtn.disabled = true;
+                const submitBtn = document.getElementById('ventaSubmitBtn');
+                if (submitBtn) {
+                    submitBtn.dataset.originalHtml = submitBtn.innerHTML;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Procesando...';
+                    submitBtn.disabled = true;
+                }
 
                 fetch('/registrar_venta', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.getElementById('csrf_token')?.value || ''
+                    },
                     body: JSON.stringify(data)
                 })
                 .then(response => response.json())
                 .then(res => {
-                    alert(res.message || 'Venta registrada exitosamente');
+                    // Mostrar toast de éxito
+                    if (typeof showToast === 'function') {
+                        showToast('success', '✅ ' + (res.message || 'Venta registrada exitosamente'));
+                    } else {
+                        alert(res.message || 'Venta registrada exitosamente');
+                    }
                     const modal = bootstrap.Modal.getInstance(ventaModal);
                     if (modal) modal.hide();
-                    ventaForm.reset();
-                    location.reload();
+                    this.reset();
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
                 })
                 .catch(error => {
                     console.error('Error registrando venta:', error);
-                    alert('Error: ' + (error.error || 'Error desconocido al registrar la venta'));
+                    if (typeof showToast === 'function') {
+                        showToast('error', '❌ Error: ' + (error.error || 'Error desconocido al registrar la venta'));
+                    } else {
+                        alert('Error: ' + (error.error || 'Error desconocido al registrar la venta'));
+                    }
                 })
                 .finally(() => {
-                    submitBtn.innerHTML = originalText;
-                    submitBtn.disabled = false;
+                    if (submitBtn && submitBtn.dataset.originalHtml) {
+                        submitBtn.innerHTML = submitBtn.dataset.originalHtml;
+                        submitBtn.disabled = false;
+                    }
                 });
             });
         }

@@ -12,6 +12,9 @@
   </ol>
 </nav>
 
+<!-- Container para toasts -->
+<div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
+
 <div class="card shadow-lg border-0">
   <div
     class="card-header bg-gradient text-white"
@@ -36,12 +39,13 @@
 
   <div class="card-body">
     <form
-      action="#"
+      action="{{ url_for('main.registrar_compra') }}"
       method="POST"
       id="compraForm"
       novalidate
       aria-label="Formulario de registro de compra"
     >
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <!-- Mensaje de ayuda -->
       <div class="alert alert-info d-flex align-items-center" role="alert">
         <i class="fas fa-info-circle me-2" aria-hidden="true"></i>
@@ -65,6 +69,7 @@
               required
               aria-describedby="brokerHelp"
               aria-invalid="false"
+              onchange="updateComitentes(this.value)"
             >
               <option value="">Seleccionar broker...</option>
               {% for broker in brokers %}
@@ -133,8 +138,9 @@
               required
               aria-describedby="instrumentoHelp"
               aria-invalid="false"
+              onchange="console.log('Instrumento seleccionado:', this.value); updateTickers(this.value)"
             >
-              <option value="">Seleccionar instrumento...</option>
+              <option value="" selected>Seleccionar instrumento...</option>
               {% for instrumento in InstrumentoFinancieros %}
               <option value="{{ instrumento.Id_InstrumentoFinanciero }}">
                 {{ instrumento.Nombre }}
@@ -170,7 +176,10 @@
               aria-describedby="tickerHelp"
               aria-invalid="false"
             >
-              <!-- Opciones se llenarán dinámicamente -->
+              <option value="">Seleccionar ticker...</option>
+                {% for ticker in tickers %}
+                <option value="{{ ticker.Id_Ticker }}">{{ ticker.Nombre_Ticker }} - {{ ticker.Descripcion }}</option>
+                {% endfor %}
             </select>
             <button
               class="btn btn-outline-primary"
@@ -475,6 +484,145 @@
       }
     });
 
-    console.log("✅ Formulario de compra cargado correctamente");
+    console.log("✅ Formulario de compra cargado correctamente",
+    document.getElementById("compraForm") ? "Formulario encontrado" : "Formulario no encontrado");
+
+    // Función para mostrar toast notifications
+    window.showToast = function(type, message) {
+      const toastId = 'toast_' + Date.now();
+      const toastClass = type === 'success' ? 'bg-success text-white' : 'bg-danger text-white';
+      const iconClass = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+      
+      const toastHtml = `
+        <div id="${toastId}" class="toast ${toastClass}" role="alert" aria-live="assertive" aria-atomic="true">
+          <div class="toast-header ${toastClass}">
+            <i class="fas ${iconClass} me-2"></i>
+            <strong class="me-auto">${type === 'success' ? 'Éxito' : 'Error'}</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+          <div class="toast-body">
+            ${message}
+          </div>
+        </div>
+      `;
+      
+      const container = document.getElementById('toastContainer');
+      if (container) {
+        container.insertAdjacentHTML('beforeend', toastHtml);
+        const toastElement = document.getElementById(toastId);
+        if (toastElement) {
+          const toast = new bootstrap.Toast(toastElement, { autohide: true, delay: 4000 });
+          toast.show();
+          // Eliminar el toast del DOM después de ocultarse
+          toastElement.addEventListener('hidden.bs.toast', function() {
+            toastElement.remove();
+          });
+        }
+      }
+    };
+
+    // Manejo del envío del formulario con AJAX
+    const compraForm = document.getElementById("compraForm");
+    if (compraForm) {
+      compraForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalBtnContent = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Procesando...';
+        submitBtn.disabled = true;
+
+        try {
+          const response = await fetch("{{ url_for('main.registrar_compra') }}", {
+            method: "POST",
+            body: formData,
+          });
+          const result = await response.json();
+
+          if (result.success) {
+            // Mostrar toast de éxito
+            if (typeof showToast === 'function') {
+              showToast("success", "✅ " + result.message + " (ID: " + result.id_activo + ")");
+            } else {
+              alert("✅ " + result.message + " (ID: " + result.id_activo + ")");
+            }
+            // Limpiar formulario
+            compraForm.reset();
+            // Recargar página para actualizar datos
+            setTimeout(() => {
+              window.location.reload();
+            }, 1500);
+          } else {
+            // Mostrar toast de error
+            if (typeof showToast === 'function') {
+              showToast("error", "❌ " + result.message);
+            } else {
+              alert("❌ " + result.message);
+            }
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          if (typeof showToast === 'function') {
+            showToast("error", "❌ Error al procesar la solicitud");
+          } else {
+            alert("❌ Error al procesar la solicitud");
+          }
+        } finally {
+          submitBtn.innerHTML = originalBtnContent;
+          submitBtn.disabled = false;
+        }
+      });
+    }
+
+    // Función global para abrir modales
+    window.openModal = function(modalId) {
+      const modal = new bootstrap.Modal(document.getElementById(modalId));
+      modal.show();
+    };
+
+    // Abrir modal de broker manualmente
+    const brokerButton = document.querySelector('[data-bs-target="#brokerModal"]');
+    if (brokerButton) {
+      brokerButton.addEventListener('click', function() {
+        const modal = new bootstrap.Modal(document.getElementById('brokerModal'));
+        modal.show();
+      });
+    }
+
+    // Abrir modal de comitente manualmente
+    const comitenteButton = document.querySelector('[data-bs-target="#comitenteModal"]');
+    if (comitenteButton) {
+      comitenteButton.addEventListener('click', function() {
+        const modal = new bootstrap.Modal(document.getElementById('comitenteModal'));
+        modal.show();
+      });
+    }
+
+    // Abrir modal de instrumento financiero manualmente
+    const instrumentoButton = document.querySelector('[data-bs-target="#InstrumentoModal"]');
+    if (instrumentoButton) {
+      instrumentoButton.addEventListener('click', function() {
+        const modal = new bootstrap.Modal(document.getElementById('InstrumentoModal'));
+        modal.show();
+      });
+    }
+
+    // Abrir modal de ticker manualmente
+    const tickerButton = document.querySelector('[data-bs-target="#TickerModal"]');
+    if (tickerButton) {
+      tickerButton.addEventListener('click', function() {
+        const modal = new bootstrap.Modal(document.getElementById('TickerModal'));
+        modal.show();
+      });
+    }
+
+    // Abrir modal de venta manualmente
+    const ventaButton = document.querySelector('[data-bs-target="#ventaModal"]');
+    if (ventaButton) {
+      ventaButton.addEventListener('click', function() {
+        const modal = new bootstrap.Modal(document.getElementById('ventaModal'));
+        modal.show();
+      });
+    }
   });
 </script>
