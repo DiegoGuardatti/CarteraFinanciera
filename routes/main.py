@@ -512,3 +512,98 @@ def registrar_venta():
         db.session.rollback()
         return {'message': f'Error al registrar venta: {str(e)}', 'success': False}
 
+@main_bp.route('/informe_activos', methods=['POST'])
+@csrf.exempt
+def informe_activos():
+    """API para obtener activos filtrados para el informe"""
+    try:
+        from modelo import Activo, Comitente, Ticker
+        
+        # Obtener parámetros de filtro
+        id_broker = request.form.get('broker', '')
+        id_comitente = request.form.get('comitente', '')
+        tipo_instrumento = request.form.get('tipo_instrumento', '')
+        ticker = request.form.get('ticker', '')
+        estado = request.form.get('estado', '')
+        
+        # Construir query
+        query = db.session.query(Activo).join(Ticker)
+        
+        if id_broker:
+            query = query.filter(Activo.Id_Broker == int(id_broker))
+        if id_comitente:
+            query = query.filter(Activo.Id_Comitente == int(id_comitente))
+        if ticker:
+            query = query.filter(Activo.Id_Ticker == int(ticker))
+        if estado:
+            query = query.filter(Activo.Activo_Estado == estado)
+        if tipo_instrumento:
+            query = query.filter(Ticker.Id_InstrumentoFinanciero == int(tipo_instrumento))
+        
+        activos = query.all()
+        
+        # Formatear resultados
+        results = []
+        total_ganancia = 0
+        
+        for a in activos:
+            ganancia = 0
+            porcentaje_pesos = 0
+            porcentaje_dolares = 0
+            
+            if a.Total_Pesos_Venta and a.Total_Pesos_Compra:
+                ganancia = a.Total_Pesos_Venta - a.Total_Pesos_Compra
+                porcentaje_pesos = (ganancia / a.Total_Pesos_Compra) * 100 if a.Total_Pesos_Compra else 0
+            
+            if a.Total_Dolares_Venta and a.Total_Dolares_Compra:
+                porcentaje_dolares = ((a.Total_Dolares_Venta - a.Total_Dolares_Compra) / a.Total_Dolares_Compra) * 100 if a.Total_Dolares_Compra else 0
+            
+            total_ganancia += ganancia
+            
+            ticker_info = db.session.query(Ticker).get(a.Id_Ticker)
+            
+            results.append({
+                'Id_Activo': a.Id_Activo,
+                'Fecha_Compra': a.Fecha_Hora_Compra.isoformat() if a.Fecha_Hora_Compra else None,
+                'Precio_Compra': a.Precio_Compra,
+                'Cantidad_Nominales_Compra': a.Cantidad_Nominales_Compra,
+                'Total_Pesos_Compra': a.Total_Pesos_Compra,
+                'Fecha_Venta': a.Fecha_Hora_Venta.isoformat() if a.Fecha_Hora_Venta else None,
+                'Precio_Venta': a.Precio_Venta,
+                'Total_Pesos_Venta': a.Total_Pesos_Venta,
+                'Ganancia': ganancia,
+                'Porcentaje_Pesos': porcentaje_pesos,
+                'Dolar_MEP_Compra': a.Precio_Dolar_MEP_Compra,
+                'Dolar_MEP_Venta': a.Precio_Dolar_MEP_Venta,
+                'Porcentaje_Dolares': porcentaje_dolares,
+                'Ticker': ticker_info.Nombre_Ticker if ticker_info else 'N/A',
+                'Estado': a.Activo_Estado
+            })
+        
+        return jsonify({
+            'data': results,
+            'total_ganancia_pesos': total_ganancia,
+            'count': len(results)
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e), 'data': []}), 500
+
+@main_bp.route('/obtener_estados_activos', methods=['GET'])
+def obtener_estados_activos():
+    """API para obtener los estados posibles de los activos"""
+    try:
+        from modelo import Activo
+        # Obtener estados únicos de la base de datos
+        estados = db.session.query(Activo.Activo_Estado).distinct().all()
+        estados_list = [e[0] for e in estados if e[0]]
+        
+        # Si no hay estados en la BD, devolver valores por defecto
+        if not estados_list:
+            estados_list = ['EN_CARTERA', 'VENDIDO', 'PENDIENTE']
+        
+        return jsonify(estados_list)
+    except Exception as e:
+        # En caso de error, devolver valores por defecto
+        return jsonify(['EN_CARTERA', 'VENDIDO', 'PENDIENTE'])
+
