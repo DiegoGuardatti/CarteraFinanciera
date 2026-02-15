@@ -1,13 +1,17 @@
 """
 API para Drill-Down y Análisis Detallado
 Soporte para visualizaciones interactivas avanzadas
+
+OPTIMIZADO: Importaciones lazy para evitar carga pesada al inicio
 """
 
 from flask import Blueprint, request, jsonify
 from datetime import datetime, timedelta
 import re
+import random
+import math
 
-# Importaciones opcionales
+# Importaciones opcionales con lazy loading
 try:
     from flask_login import login_required
     FLASK_LOGIN_AVAILABLE = True
@@ -16,38 +20,53 @@ except ImportError:
     def login_required(f):
         return f
 
-try:
-    import pandas as pd
-    PANDAS_AVAILABLE = True
-except ImportError:
-    PANDAS_AVAILABLE = False
+# Lazy loading para numpy y pandas
+_np = None
+_pd = None
 
-try:
-    import numpy as np
-    NUMPY_AVAILABLE = True
-except ImportError:
-    NUMPY_AVAILABLE = False
-    # Mock numpy functions
-    import random
-    import math
+def _get_numpy():
+    """Lazy loading de numpy"""
+    global _np
+    if _np is None:
+        try:
+            import numpy
+            _np = numpy
+        except ImportError:
+            _np = _create_mock_numpy()
+    return _np
+
+def _get_pandas():
+    """Lazy loading de pandas"""
+    global _pd
+    if _pd is None:
+        try:
+            import pandas
+            _pd = pandas
+        except ImportError:
+            _pd = None
+    return _pd
+
+def _create_mock_numpy():
+    """Crear mock de numpy para cuando no está disponible"""
+    class MockRandom:
+        @staticmethod
+        def uniform(low, high):
+            return random.uniform(low, high)
+        
+        @staticmethod
+        def randint(low, high):
+            return random.randint(low, high)
+        
+        @staticmethod
+        def choice(seq, p=None):
+            return random.choice(seq)
+        
+        @staticmethod
+        def normal(mean, std, size):
+            return [random.gauss(mean, std) for _ in range(size)]
     
     class MockNumpy:
-        class random:
-            @staticmethod
-            def uniform(low, high):
-                return random.uniform(low, high)
-            
-            @staticmethod
-            def randint(low, high):
-                return random.randint(low, high)
-            
-            @staticmethod
-            def choice(seq, p=None):
-                return random.choice(seq)
-            
-            @staticmethod
-            def normal(mean, std, size):
-                return [random.gauss(mean, std) for _ in range(size)]
+        random = MockRandom()
         
         @staticmethod
         def mean(arr):
@@ -57,11 +76,11 @@ except ImportError:
         def std(arr):
             if len(arr) < 2:
                 return 0
-            mean = sum(arr) / len(arr)
-            variance = sum((x - mean) ** 2 for x in arr) / (len(arr) - 1)
+            m = sum(arr) / len(arr)
+            variance = sum((x - m) ** 2 for x in arr) / (len(arr) - 1)
             return math.sqrt(variance)
     
-    np = MockNumpy()
+    return MockNumpy()
 
 from extensions import db
 
@@ -202,15 +221,16 @@ def get_detailed_analysis(analysis_type, category):
     """
     Obtener análisis detallado según el tipo
     """
+    np = _get_numpy()
     # Simular datos detallados por categoría
     if 'quarterly' in analysis_type:
-        return generate_quarterly_detailed_data(category)
+        return generate_quarterly_detailed_data(category, np)
     elif 'monthly' in analysis_type:
-        return generate_monthly_detailed_data(category)
+        return generate_monthly_detailed_data(category, np)
     else:
-        return generate_default_detailed_data(category)
+        return generate_default_detailed_data(category, np)
 
-def generate_quarterly_detailed_data(quarter):
+def generate_quarterly_detailed_data(quarter, np):
     """
     Generar datos detallados para análisis trimestral
     """
@@ -250,7 +270,7 @@ def generate_quarterly_detailed_data(quarter):
         }
     }
 
-def generate_monthly_detailed_data(month):
+def generate_monthly_detailed_data(month, np):
     """
     Generar datos detallados para análisis mensual
     """
@@ -278,7 +298,7 @@ def generate_monthly_detailed_data(month):
         }
     }
 
-def generate_default_detailed_data(category):
+def generate_default_detailed_data(category, np):
     """
     Generar datos detallados por defecto
     """
@@ -300,6 +320,7 @@ def get_correlation_details(ticker1, ticker2):
     """
     Obtener detalles de correlación entre dos activos
     """
+    np = _get_numpy()
     # Simular datos históricos de correlación
     correlation = np.random.uniform(-0.9, 0.9)
     
@@ -326,7 +347,7 @@ def get_correlation_details(ticker1, ticker2):
     }
     
     # Recomendaciones basadas en correlación
-    recommendations = get_correlation_recommendations(correlation)
+    recommendations = get_correlation_recommendations(correlation, np)
     
     return {
         'ticker1': ticker1,
@@ -334,7 +355,7 @@ def get_correlation_details(ticker1, ticker2):
         'correlation_analysis': correlation_stats,
         'cointegration_analysis': cointegration_analysis,
         'recommendations': recommendations,
-        'risk_implications': get_risk_implications(correlation),
+        'risk_implications': get_risk_implications(correlation, np),
         'diversification_impact': get_diversification_impact(correlation)
     }
 
@@ -354,7 +375,7 @@ def get_correlation_strength(correlation):
     else:
         return 'Muy Baja'
 
-def get_correlation_recommendations(correlation):
+def get_correlation_recommendations(correlation, np):
     """
     Generar recomendaciones basadas en correlación
     """
@@ -383,7 +404,7 @@ def get_correlation_recommendations(correlation):
             'recommended_allocation_change': np.random.uniform(-5, 5)
         }
 
-def get_risk_implications(correlation):
+def get_risk_implications(correlation, np):
     """
     Implicaciones de riesgo basadas en correlación
     """
@@ -391,10 +412,10 @@ def get_risk_implications(correlation):
         'systematic_risk_increase': correlation > 0.6,
         'hedge_effectiveness': abs(correlation) < 0.3,
         'crisis_correlation_risk': correlation > 0.7,
-        'market_stress_impact': get_market_stress_impact(correlation)
+        'market_stress_impact': get_market_stress_impact(correlation, np)
     }
 
-def get_market_stress_impact(correlation):
+def get_market_stress_impact(correlation, np):
     """
     Impacto en escenarios de estrés de mercado
     """
@@ -432,6 +453,7 @@ def get_backtest_period_details(period_id):
     """
     Obtener detalles de backtesting por período
     """
+    np = _get_numpy()
     # Simular datos detallados de backtesting
     return {
         'period_id': period_id,
@@ -462,6 +484,7 @@ def get_var_contribution_details(ticker):
     """
     Obtener contribución detallada al VaR por activo
     """
+    np = _get_numpy()
     return {
         'ticker': ticker,
         'individual_var': np.random.uniform(50000, 150000),
@@ -481,6 +504,7 @@ def get_risk_scenario_analysis(ticker):
     """
     Análisis de escenarios de riesgo para un activo
     """
+    np = _get_numpy()
     scenarios = {
         'market_crash': {
             'probability': np.random.uniform(5, 15),
@@ -499,19 +523,25 @@ def get_risk_scenario_analysis(ticker):
         },
         'liquidity_crisis': {
             'probability': np.random.uniform(5, 20),
-            'expected_impact': np.random.uniform(-20, -40),
+            'expected_impact': np.random.uniform(-20, -45),
             'recovery_time': np.random.randint(6, 24)
         }
     }
     
     return {
         'ticker': ticker,
-        'scenario_analysis': scenarios,
-        'overall_risk_score': np.random.uniform(30, 80),
-        'risk_category': np.random.choice(['Low', 'Medium', 'High']),
-        'recommended_hedging': {
-            'options_strategy': np.random.choice(['Protective Put', 'Collar', 'None']),
-            'futures_hedge': np.random.uniform(0, 0.5),
-            'rebalancing_frequency': np.random.choice(['Monthly', 'Quarterly', 'As Needed'])
+        'scenarios': scenarios,
+        'overall_risk_score': np.random.uniform(1, 10),
+        'risk_category': np.random.choice(['Low', 'Medium', 'High', 'Very High']),
+        'mitigation_strategies': [
+            'Diversificación sectorial',
+            'Hedging con derivados',
+            'Stop-loss dinámico',
+            'Rebalanceo periódico'
+        ],
+        'stress_test_results': {
+            'worst_case_impact': np.random.uniform(-50, -70),
+            'best_case_impact': np.random.uniform(10, 30),
+            'most_likely_impact': np.random.uniform(-15, 15)
         }
     }

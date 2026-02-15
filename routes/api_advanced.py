@@ -1,26 +1,54 @@
 """
 Blueprint para APIs de métricas financieras avanzadas institucionales
 Incluye VaR, Monte Carlo, Stress Testing y Métricas ESG
+
+OPTIMIZADO: Importaciones lazy para evitar carga pesada al inicio
 """
 
 from flask import Blueprint, jsonify, request
-from metricas_avanzadas import (
-    calcular_var_historico,
-    calcular_var_parametrico,
-    analisis_monte_carlo,
-    stress_testing_automatizado,
-    calcular_metricas_esg,
-    portfolio_var_cartera
-)
-from utils.cache_config import cache_with_params as cache_result
 from datetime import datetime
 import logging
+import functools
 
 api_advanced_bp = Blueprint('api_advanced', __name__)
 logger = logging.getLogger(__name__)
 
+# Cache para módulos importados de forma lazy
+_metricas_avanzadas = None
+_cache_decorator = None
+
+def _get_metricas_avanzadas():
+    """Lazy loading del módulo metricas_avanzadas"""
+    global _metricas_avanzadas
+    if _metricas_avanzadas is None:
+        import metricas_avanzadas
+        _metricas_avanzadas = metricas_avanzadas
+    return _metricas_avanzadas
+
+def _get_cache_decorator():
+    """Lazy loading del decorador de cache"""
+    global _cache_decorator
+    if _cache_decorator is None:
+        from utils.cache_config import cache_with_params
+        _cache_decorator = cache_with_params
+    return _cache_decorator
+
+def lazy_cache(timeout=300):
+    """
+    Decorador de cache con lazy loading.
+    No carga el módulo de cache hasta que se usa por primera vez.
+    """
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            cache_func = _get_cache_decorator()(timeout=timeout)
+            return cache_func(func)(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
 @api_advanced_bp.route('/var/historico/<int:activo_id>', methods=['GET'])
-@cache_result(timeout=300)  # Cache 5 minutos
+@lazy_cache(timeout=300)  # Cache 5 minutos
 def get_var_historico(activo_id):
     """
     Obtiene VaR histórico para un activo
@@ -30,10 +58,11 @@ def get_var_historico(activo_id):
         window_days (int): Ventana de días (default: 252)
     """
     try:
+        ma = _get_metricas_avanzadas()
         confidence_level = float(request.args.get('confidence_level', 0.95))
         window_days = int(request.args.get('window_days', 252))
         
-        result = calcular_var_historico(activo_id, confidence_level, window_days)
+        result = ma.calcular_var_historico(activo_id, confidence_level, window_days)
         
         if 'error' in result:
             return jsonify(result), 404
@@ -52,7 +81,7 @@ def get_var_historico(activo_id):
         return jsonify({'error': 'Error interno del servidor'}), 500
 
 @api_advanced_bp.route('/var/parametrico/<int:activo_id>', methods=['GET'])
-@cache_result(timeout=300)  # Cache 5 minutos
+@lazy_cache(timeout=300)  # Cache 5 minutos
 def get_var_parametrico(activo_id):
     """
     Obtiene VaR paramétrico para un activo
@@ -61,9 +90,10 @@ def get_var_parametrico(activo_id):
         confidence_level (float): Nivel de confianza (default: 0.95)
     """
     try:
+        ma = _get_metricas_avanzadas()
         confidence_level = float(request.args.get('confidence_level', 0.95))
         
-        result = calcular_var_parametrico(activo_id, confidence_level)
+        result = ma.calcular_var_parametrico(activo_id, confidence_level)
         
         if 'error' in result:
             return jsonify(result), 404
@@ -82,7 +112,7 @@ def get_var_parametrico(activo_id):
         return jsonify({'error': 'Error interno del servidor'}), 500
 
 @api_advanced_bp.route('/monte-carlo/<int:activo_id>', methods=['GET'])
-@cache_result(timeout=600)  # Cache 10 minutos
+@lazy_cache(timeout=600)  # Cache 10 minutos
 def get_monte_carlo(activo_id):
     """
     Obtiene análisis Monte Carlo para un activo
@@ -92,6 +122,7 @@ def get_monte_carlo(activo_id):
         dias_horizonte (int): Días hacia adelante (default: 30)
     """
     try:
+        ma = _get_metricas_avanzadas()
         num_simulaciones = int(request.args.get('num_simulaciones', 10000))
         dias_horizonte = int(request.args.get('dias_horizonte', 30))
         
@@ -101,7 +132,7 @@ def get_monte_carlo(activo_id):
         if dias_horizonte > 365:
             return jsonify({'error': 'Máximo 365 días de horizonte'}), 400
         
-        result = analisis_monte_carlo(activo_id, num_simulaciones, dias_horizonte)
+        result = ma.analisis_monte_carlo(activo_id, num_simulaciones, dias_horizonte)
         
         if 'error' in result:
             return jsonify(result), 404
@@ -120,7 +151,7 @@ def get_monte_carlo(activo_id):
         return jsonify({'error': 'Error interno del servidor'}), 500
 
 @api_advanced_bp.route('/stress-testing/<int:activo_id>', methods=['GET'])
-@cache_result(timeout=1800)  # Cache 30 minutos
+@lazy_cache(timeout=1800)  # Cache 30 minutos
 def get_stress_testing(activo_id):
     """
     Obtiene stress testing automatizado para un activo
@@ -129,6 +160,7 @@ def get_stress_testing(activo_id):
         escenarios (str): JSON con escenarios personalizados (opcional)
     """
     try:
+        ma = _get_metricas_avanzadas()
         escenarios_json = request.args.get('escenarios')
         escenarios = None
         
@@ -139,7 +171,7 @@ def get_stress_testing(activo_id):
             except json.JSONDecodeError:
                 return jsonify({'error': 'Formato JSON inválido para escenarios'}), 400
         
-        result = stress_testing_automatizado(activo_id, escenarios)
+        result = ma.stress_testing_automatizado(activo_id, escenarios)
         
         if 'error' in result:
             return jsonify(result), 404
@@ -155,13 +187,14 @@ def get_stress_testing(activo_id):
         return jsonify({'error': 'Error interno del servidor'}), 500
 
 @api_advanced_bp.route('/esg/<int:activo_id>', methods=['GET'])
-@cache_result(timeout=3600)  # Cache 1 hora
+@lazy_cache(timeout=3600)  # Cache 1 hora
 def get_esg_metrics(activo_id):
     """
     Obtiene métricas ESG para un activo
     """
     try:
-        result = calcular_metricas_esg(activo_id)
+        ma = _get_metricas_avanzadas()
+        result = ma.calcular_metricas_esg(activo_id)
         
         if 'error' in result:
             return jsonify(result), 404
@@ -177,7 +210,7 @@ def get_esg_metrics(activo_id):
         return jsonify({'error': 'Error interno del servidor'}), 500
 
 @api_advanced_bp.route('/portfolio/var', methods=['GET'])
-@cache_result(timeout=300)  # Cache 5 minutos
+@lazy_cache(timeout=300)  # Cache 5 minutos
 def get_portfolio_var():
     """
     Obtiene VaR de toda la cartera
@@ -187,13 +220,14 @@ def get_portfolio_var():
         metodo (str): 'historico' o 'parametrico' (default: 'historico')
     """
     try:
+        ma = _get_metricas_avanzadas()
         confidence_level = float(request.args.get('confidence_level', 0.95))
         metodo = request.args.get('metodo', 'historico')
         
         if metodo not in ['historico', 'parametrico']:
             return jsonify({'error': 'Método debe ser "historico" o "parametrico"'}), 400
         
-        result = portfolio_var_cartera(confidence_level, metodo)
+        result = ma.portfolio_var_cartera(confidence_level, metodo)
         
         if 'error' in result:
             return jsonify(result), 404
@@ -212,18 +246,20 @@ def get_portfolio_var():
         return jsonify({'error': 'Error interno del servidor'}), 500
 
 @api_advanced_bp.route('/risk-summary/<int:activo_id>', methods=['GET'])
-@cache_result(timeout=300)  # Cache 5 minutos
+@lazy_cache(timeout=300)  # Cache 5 minutos
 def get_risk_summary(activo_id):
     """
     Obtiene resumen completo de riesgo para un activo
     Incluye VaR histórico, paramétrico, Monte Carlo y Stress Testing
     """
     try:
+        ma = _get_metricas_avanzadas()
+        
         # Obtener todas las métricas de riesgo
-        var_historico = calcular_var_historico(activo_id)
-        var_parametrico = calcular_var_parametrico(activo_id)
-        monte_carlo = analisis_monte_carlo(activo_id)
-        stress_testing = stress_testing_automatizado(activo_id)
+        var_historico = ma.calcular_var_historico(activo_id)
+        var_parametrico = ma.calcular_var_parametrico(activo_id)
+        monte_carlo = ma.analisis_monte_carlo(activo_id)
+        stress_testing = ma.stress_testing_automatizado(activo_id)
         
         # Verificar si todas las métricas se calcularon correctamente
         metrics = {}
@@ -298,14 +334,7 @@ def health_check():
     """
     try:
         # Verificar que las funciones principales estén disponibles
-        from metricas_avanzadas import (
-            calcular_var_historico,
-            calcular_var_parametrico,
-            analisis_monte_carlo,
-            stress_testing_automatizado,
-            calcular_metricas_esg,
-            portfolio_var_cartera
-        )
+        ma = _get_metricas_avanzadas()
         
         return jsonify({
             'status': 'healthy',

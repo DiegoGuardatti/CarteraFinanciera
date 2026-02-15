@@ -1,6 +1,8 @@
 """
 API de Health Check y Monitoreo
 Endpoints para monitoreo de salud del sistema
+
+OPTIMIZADO: Importaciones lazy para evitar carga pesada al inicio
 """
 
 from flask import Blueprint, jsonify, request
@@ -24,60 +26,93 @@ except ImportError:
             return f(*args, **kwargs)
         return decorated_function
 
-try:
-    import psutil
-    PSUTIL_AVAILABLE = True
-except ImportError:
-    PSUTIL_AVAILABLE = False
-    # Mock psutil functions
+# Lazy loading para psutil
+_psutil = None
+
+def _get_psutil():
+    """Lazy loading de psutil"""
+    global _psutil
+    if _psutil is None:
+        try:
+            import psutil
+            _psutil = psutil
+        except ImportError:
+            _psutil = _create_mock_psutil()
+    return _psutil
+
+def _create_mock_psutil():
+    """Crear mock de psutil para cuando no está disponible"""
+    class MockMemory:
+        percent = 60.0
+        total = 8000000000
+        available = 3200000000
+        used = 4800000000
+        free = 3200000000
+    
+    class MockDisk:
+        percent = 45.0
+        total = 100000000000
+        used = 45000000000
+        free = 55000000000
+    
+    class MockDiskIO:
+        read_bytes = 1000000
+        write_bytes = 2000000
+    
+    class MockNetIO:
+        bytes_sent = 5000000
+        bytes_recv = 3000000
+        packets_sent = 1000
+        packets_recv = 800
+    
+    class MockProcess:
+        def __init__(self):
+            pass
+        def memory_info(self):
+            class MemInfo:
+                rss = 50000000
+                vms = 100000000
+                def _asdict(self):
+                    return {'rss': self.rss, 'vms': self.vms}
+            return MemInfo()
+        def create_time(self):
+            return time.time() - 3600
+        def num_threads(self):
+            return 4
+    
     class MockPsutil:
         @staticmethod
         def cpu_percent(interval=1):
             return 50.0
         @staticmethod
+        def cpu_count():
+            return 4
+        @staticmethod
         def virtual_memory():
-            class Memory:
-                percent = 60.0
-                total = 8000000000
-                available = 3200000000
-                used = 4800000000
-                free = 3200000000
-            return Memory()
+            return MockMemory()
         @staticmethod
         def disk_usage(path):
-            class Disk:
-                percent = 45.0
-                total = 100000000000
-                used = 45000000000
-                free = 55000000000
-            return Disk()
+            return MockDisk()
         @staticmethod
         def pids():
             return list(range(100))
         @staticmethod
-        def cpu_count():
-            return 4
-        @staticmethod
         def disk_io_counters():
-            class DiskIO:
-                read_bytes = 1000000
-                write_bytes = 2000000
-            return DiskIO()
+            return MockDiskIO()
         @staticmethod
         def net_io_counters():
-            class NetIO:
-                bytes_sent = 5000000
-                bytes_recv = 3000000
-                packets_sent = 1000
-                packets_recv = 800
-            return NetIO()
+            return MockNetIO()
         @staticmethod
-        def process_iter(attrs):
+        def process_iter(attrs=None):
             return []
         @staticmethod
         def boot_time():
             return time.time() - 86400
-    psutil = MockPsutil()
+        @staticmethod
+        def Process():
+            return MockProcess()
+    
+    return MockPsutil()
 
 from extensions import db, cache
 
@@ -250,6 +285,7 @@ def check_cache_health():
 def get_system_metrics():
     """Obtener métricas básicas del sistema"""
     try:
+        psutil = _get_psutil()
         return {
             'cpu_percent': round(psutil.cpu_percent(interval=1), 2),
             'memory_percent': round(psutil.virtual_memory().percent, 2),
@@ -330,6 +366,7 @@ def check_cache_detailed():
 def check_disk_health():
     """Verificar salud del disco"""
     try:
+        psutil = _get_psutil()
         disk_usage = psutil.disk_usage('/')
         disk_io = psutil.disk_io_counters()
         
@@ -347,6 +384,7 @@ def check_disk_health():
 def check_network_health():
     """Verificar salud de red"""
     try:
+        psutil = _get_psutil()
         # Verificar conectividad a servicios externos
         external_checks = {
             'dns': check_dns_resolution(),
@@ -370,6 +408,7 @@ def check_network_health():
 def check_process_health():
     """Verificar salud de procesos"""
     try:
+        psutil = _get_psutil()
         # Verificar procesos críticos
         critical_processes = ['mysql', 'redis', 'nginx', 'gunicorn']
         process_status = {}
@@ -423,6 +462,7 @@ def check_application_health():
 def get_detailed_system_metrics():
     """Obtener métricas detalladas del sistema"""
     try:
+        psutil = _get_psutil()
         return {
             'cpu': {
                 'count': psutil.cpu_count(),
@@ -460,6 +500,7 @@ def get_application_metrics():
 def get_performance_metrics():
     """Obtener métricas de performance"""
     try:
+        psutil = _get_psutil()
         return {
             'boot_time': psutil.boot_time(),
             'process_create_time': psutil.Process().create_time(),

@@ -45,4 +45,5 @@ COPY --chown=app:app scripts/wait-for-db.sh /usr/local/bin/wait-for-db.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/wait-for-db.sh
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "app:app"]
+# OPTIMIZADO: Aumentado timeout a 120s y reducido workers a 2 para evitar problemas de memoria
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--timeout", "120", "--graceful-timeout", "30", "--max-requests", "1000", "--max-requests-jitter", "50", "app:app"]
