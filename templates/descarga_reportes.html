@@ -243,9 +243,9 @@ curl -X GET "http://localhost:5000/api/dashboard/summary" \
                         <pre><code>// Descargar CSV via JavaScript
 function descargarCSV() {
     const filtros = {
-        Id_Broker: $('#filtroBroker').val(),
-        Id_Ticker: $('#filtroTicker').val(),
-        Activo_Estado: $('#filtroEstado').val()
+        Id_Broker: document.getElementById('filtroBroker').value,
+        Id_Ticker: document.getElementById('filtroTicker').value,
+        Activo_Estado: document.getElementById('filtroEstado').value
     };
     
     const params = new URLSearchParams(filtros);

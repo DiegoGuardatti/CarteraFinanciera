@@ -195,7 +195,12 @@
             } else {
                 // Submit the form if the ticker is valid
                 document.getElementById('tickerError').style.display = 'none';
-                $('#TickerModal').modal('hide'); // Hide the modal using jQuery
+                // Hide the modal using vanilla JavaScript
+                var modal = document.getElementById('TickerModal');
+                var modalInstance = bootstrap.Modal.getInstance(modal);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
                 // Submit the form using JavaScript
                 document.getElementById('formRegistrarTicker').submit();
             }
@@ -251,7 +256,12 @@
                         document.getElementById('nuevoTicker').value = '';
                         document.getElementById('Descripcion').value = '';
                         document.getElementById('selectInstrumento').value = '';
-                        $('#TickerModal').modal('hide'); // Ocultar el modal
+                        // Ocultar el modal usando vanilla JavaScript
+                        var modal = document.getElementById('TickerModal');
+                        var modalInstance = bootstrap.Modal.getInstance(modal);
+                        if (modalInstance) {
+                            modalInstance.hide();
+                        }
                         window.location.href = '/compra'; // Redireccionar a la página de compra
                     }
                 })
@@ -360,7 +370,12 @@
         .then(response => response.json())
         .then(result => {
             alert(result.message);
-            $('#ventaModal').modal('hide'); // Ocultar el modal
+            // Ocultar el modal usando vanilla JavaScript
+            var modal = document.getElementById('ventaModal');
+            var modalInstance = bootstrap.Modal.getInstance(modal);
+            if (modalInstance) {
+                modalInstance.hide();
+            }
         })
         .catch(error => {
             console.error('Error al registrar la venta:', error);
