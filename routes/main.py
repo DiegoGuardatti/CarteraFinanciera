@@ -41,6 +41,7 @@ def venta():
 @main_bp.route('/informe')
 def informe():
     """Página de informes"""
+    from modelo import Ticker
     brokers = db.session.query(Broker).all()
     instrumentos = db.session.query(InstrumentoFinanciero).all()
     tickers = db.session.query(Ticker).all()
