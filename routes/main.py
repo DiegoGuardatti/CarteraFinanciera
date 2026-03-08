@@ -524,11 +524,11 @@ def informe_activos():
         from modelo import Activo, Comitente, Ticker
         
         # Obtener parámetros de filtro
-        id_broker = request.form.get('broker', '')
-        id_comitente = request.form.get('comitente', '')
-        tipo_instrumento = request.form.get('tipo_instrumento', '')
-        ticker = request.form.get('ticker', '')
-        estado = request.form.get('estado', '')
+        id_broker = request.form.get('Id_Broker', '')
+        id_comitente = request.form.get('Id_Comitente', '')
+        tipo_instrumento = request.form.get('Id_InstrumentoFinanciero', '')
+        ticker = request.form.get('Id_Ticker', '')
+        estado = request.form.get('Activo_Estado', '')
         
         # Construir query
         query = db.session.query(Activo).join(Ticker)

@@ -141,6 +141,9 @@
                             </label>
                             <select class="form-select shadow-sm" id="tickernombre" name="Id_Ticker">
                                 <option value="">Seleccionar ticker...</option>
+                                {% for ticker in tickers %}
+                                    <option value="{{ ticker.Id_Ticker }}">{{ ticker.Nombre_Ticker }} - {{ ticker.Descripcion }}</option>
+                                {% endfor %}
                             </select>
                         </div>
 
@@ -221,6 +224,9 @@
                         <table class="table table-hover table-striped" id="tablaResultados">
                             <thead class="table-dark">
                                 <tr>
+                                    <th scope="col">
+                                        <i class="fas fa-tag me-1"></i>Ticker
+                                    </th>
                                     <th scope="col">
                                         <i class="fas fa-calendar me-1"></i>Fecha Compra
                                     </th>
@@ -481,6 +487,7 @@
                     const porcentajeDolares = activo.Porcentaje_Dolares !== undefined ? activo.Porcentaje_Dolares : 'N/A';
 
                     row.innerHTML = `
+                        <td class="text-center fw-bold">${activo.Ticker || 'N/A'}</td>
                         <td class="text-center">${moment(activo.Fecha_Compra).format('DD/MM/YYYY HH:mm')}</td>
                         <td class="text-center">${formatearValor(activo.Precio_Compra)}</td>
                         <td class="text-center">${formatearValor(activo.Cantidad_Nominales_Compra)}</td>
@@ -551,9 +558,6 @@
         event.preventDefault();
         fetchAndUpdateResults();
     });
-
-    // Cargar todos los activos por defecto al iniciar la página
-    fetchAndUpdateResults();
 });
     </script>
     
