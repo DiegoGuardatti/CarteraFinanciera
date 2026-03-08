@@ -43,9 +43,12 @@ def informe():
     """Página de informes"""
     brokers = db.session.query(Broker).all()
     instrumentos = db.session.query(InstrumentoFinanciero).all()
+    tickers = db.session.query(Ticker).all()
     return render_template('informe.html', 
                          brokers=brokers, 
-                         instrumentos=instrumentos)
+                         instrumentos=instrumentos,
+                         InstrumentoFinancieros=instrumentos,
+                         tickers=tickers)
 
 @main_bp.route('/dashboard')
 def dashboard():
